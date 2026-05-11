@@ -613,6 +613,8 @@ For a vector field $f_\theta(x,\tau)$, the Hutchinson identity estimates the div
     \right],
 \end{equation}
 where $v$ denotes a Rademacher probe.
+In the SciML implementation, the code samples this probe when it constructs the \texttt{ODEProblem} for a batch, captures it in the ODE right-hand-side closure, and reuses that fixed probe for every RHS evaluation in the adaptive solve.
+The augmented RHS returns both the coordinate velocity $f_\theta(x,\tau)$ and the log-density derivative $-\widehat{\operatorname{Tr}}$, so the SciML solver integrates the stochastic trace estimate as part of the same state as the coordinates.
 The implementation samples one probe per batch and computes
 \begin{equation}
     \widehat{\operatorname{Tr}}
@@ -983,24 +985,50 @@ Expanding the divergence gives
     =
     0.
 \end{equation}
-Along a trajectory $z(\tau)$, the total derivative of the density is
+Along a trajectory $z(\tau)$, the density depends on both the current position and pseudotime.
+The chain rule gives
 \begin{equation}
     \frac{d}{d\tau}p(z(\tau),\tau)
     =
     \frac{\partial p}{\partial \tau}
     +
-    f_\theta \cdot \nabla_z p.
+    \frac{dz}{d\tau}
+    \cdot
+    \nabla_z p.
 \end{equation}
-Combining the last two equations gives
+Substituting the CNF ODE, $dz/d\tau=f_\theta(z(\tau),\tau)$, yields
 \begin{equation}
     \frac{d}{d\tau}p(z(\tau),\tau)
     =
-    -
-    p(z(\tau),\tau)
-    \operatorname{Tr}
-    \left(
-        \frac{\partial f_\theta}{\partial z}
-    \right).
+    \frac{\partial p}{\partial \tau}
+    +
+    f_\theta
+    \cdot
+    \nabla_z p.
+\end{equation}
+The first two terms in the expanded continuity equation are therefore exactly this total derivative along the flow.
+Combining the expanded continuity equation with the chain-rule expression gives
+\begin{equation}
+    \begin{aligned}
+        \frac{d}{d\tau}p(z(\tau),\tau)
+        &+
+        p(z(\tau),\tau)
+        \operatorname{Tr}
+        \left(
+            \frac{\partial f_\theta}{\partial z}
+        \right)
+        =
+        0,
+        \\
+        \frac{d}{d\tau}p(z(\tau),\tau)
+        &=
+        -
+        p(z(\tau),\tau)
+        \operatorname{Tr}
+        \left(
+            \frac{\partial f_\theta}{\partial z}
+        \right).
+    \end{aligned}
 \end{equation}
 Dividing by $p$ gives the instantaneous change-of-variables formula
 \begin{equation}
@@ -1028,22 +1056,20 @@ Integrating from $\tau=0$ to $\tau=1$ gives
 \end{equation}
 With $z(0)=x$ and standard normal base density at $z(1)$,
 \begin{equation}
-    \begin{aligned}
-        \log p_\theta(x)
-        &=
-        \log \mathcal{N}(z(1);0,I)
-        \\
-        &\quad
-        +
-        \int_0^1
-        \operatorname{Tr}
-        \left(
-            \frac{\partial f_\theta}{\partial z(\tau)}
-        \right)
-        d\tau.
-    \end{aligned}
+    \log p_\theta(x)
+    =
+    \log \mathcal{N}(z(1);0,I)
+    +
+    \int_0^1
+    \operatorname{Tr}
+    \left(
+        \frac{\partial f_\theta}{\partial z(\tau)}
+    \right)
+    d\tau.
 \end{equation}
-Equivalently, the implementation accumulates
+The augmented CNF state stores the integrated log-density change rather than the absolute density.
+Here $\Delta\log p(\tau)=\log p(z(\tau),\tau)-\log p(z(0),0)$, so differentiating removes the constant initial term.
+Using the instantaneous change-of-variables result above, the implementation therefore accumulates
 \begin{equation}
     \begin{aligned}
         \frac{d}{d\tau}\Delta\log p
@@ -1061,11 +1087,16 @@ Equivalently, the implementation accumulates
 \end{equation}
 and evaluates
 \begin{equation}
-    \log p_\theta(x)
-    =
-    \log \mathcal{N}(z(1);0,I)
-    -
-    \Delta\log p(1).
+    \begin{aligned}
+        \log p_\theta(x)
+        &=
+        \log
+        \mathcal{N}(z(1);0,I)
+        \\
+        &\quad
+        -
+        \Delta\log p(1).
+    \end{aligned}
 \end{equation}
 
 \subsection{Hutchinson Trace Estimator}
@@ -1103,8 +1134,25 @@ Thus
     v
 \end{equation}
 gives an unbiased stochastic estimate of the divergence.
-The implementation draws Rademacher probes with the same coordinate shape as the bead configuration.
-For a given ODE problem construction, the sampled probe remains fixed inside the right-hand side for that solve, so the augmented ODE integrates a consistent stochastic trace estimate along the CNF trajectory.
+Here $Av$ is the directional derivative of the vector field along the probe direction, and the outer product with $v^T$ contracts that directional response to one scalar.
+The independent Rademacher signs cancel cross terms $A_{ij}v_i v_j$ for $i\neq j$ in expectation, while each diagonal term keeps $v_i^2=1$, leaving exactly $\sum_i A_{ii}=\operatorname{Tr}(A)$.
+For bead coordinates, the flattened index $i$ represents a bead-coordinate pair $(a,k)$, so this trace sums the response of $f_{\theta,a,k}$ to its matching input $x_{a,k}$.
+In the SciML code path, \texttt{\_cnf\_problem} samples one $\{-1,+1\}$ probe with the same shape as the batch coordinates before constructing the \texttt{ODEProblem}.
+The ODE RHS closes over that probe, so adaptive substeps, rejected steps, and adjoint replay all use the same stochastic trace direction for the solve; changing probes at every RHS call would instead add artificial time-dependent noise to the ODE.
+For each RHS call, the augmented derivative has the schematic form
+\begin{equation}
+    \frac{d}{d\tau}
+    \begin{bmatrix}
+        x \\
+        \Delta\log p
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        f_\theta(x,\tau) \\
+        -
+        v^T J_{f_\theta}(x,\tau)v
+    \end{bmatrix}.
+\end{equation}
 The code computes the matrix-vector product
 \begin{equation}
     J_{f_\theta}(x,\tau)v
@@ -1259,14 +1307,171 @@ This recursion gives the full analytic JVP that the \texttt{hutchinson\_jvp} tra
 
 \subsection{Variance-Preserving Diffusion Score Target}
 
-The VP forward SDE is
+DDPM defines a discrete noising Markov chain
+\begin{equation}
+    q(x_k|x_{k-1})
+    =
+    \mathcal{N}
+    \left(
+        x_k;
+        \sqrt{1-\beta_k}\,x_{k-1},
+        \beta_k I
+    \right).
+\end{equation}
+Equivalently,
+\begin{equation}
+    x_k
+    =
+    \sqrt{1-\beta_k}\,x_{k-1}
+    +
+    \sqrt{\beta_k}\,\epsilon_k,
+    \qquad
+    \epsilon_k\sim\mathcal{N}(0,I).
+\end{equation}
+To obtain a continuous Markov noising process, take a small timestep $\Delta t$ and set $\beta_k=\beta(t)\Delta t$.
+Using $\sqrt{1-\beta(t)\Delta t}=1-\frac{1}{2}\beta(t)\Delta t+o(\Delta t)$ gives
+\begin{align}
+    x_{t+\Delta t}-x_t
+    &=
+    -\frac{1}{2}\beta(t)x_t\,\Delta t
+    +
+    \sqrt{\beta(t)\Delta t}\,\epsilon_t
+    +
+    o(\Delta t).
+\end{align}
+The limit $\Delta t\to 0$ gives the VP forward SDE
 \begin{equation}
     dx_t
     =
     -\frac{1}{2}\beta(t)x_t\,dt
     +
-    \sqrt{\beta(t)}\,dw_t.
+    \sqrt{\beta(t)}\,dW_t.
 \end{equation}
+This continuous process keeps the DDPM Markov structure while giving an SDE whose marginal transition density we can compute in closed form.
+Define
+\begin{equation}
+    B(t)
+    =
+    \int_0^t
+    \beta(s)\,ds.
+\end{equation}
+It\^o's product rule, which follows from It\^o's lemma with $\psi(x,t)=e^{B(t)/2}x$, shows that multiplying by the integrating factor $e^{B(t)/2}$ removes the deterministic decay:
+\begin{align}
+    d
+    \left[
+        e^{B(t)/2}x_t
+    \right]
+    &=
+    e^{B(t)/2}
+    \sqrt{\beta(t)}
+    \,dw_t.
+\end{align}
+Integrating from $0$ to $t$ gives
+\begin{equation}
+    \begin{aligned}
+        x_t
+        &=
+        e^{-B(t)/2}x_0
+        \\
+        &\quad
+        +
+        \int_0^t
+        e^{-(B(t)-B(s))/2}
+        \sqrt{\beta(s)}
+        \,dW_s.
+    \end{aligned}
+\end{equation}
+Taking conditional expectation over the Brownian path gives
+\begin{equation}
+    \mathbb{E}[x_t|x_0]
+    =
+    e^{-B(t)/2}x_0.
+\end{equation}
+The stochastic integral has mean zero because It\^o increments have mean zero.
+Write that stochastic integral as
+\begin{equation}
+    \eta_t
+    =
+    \int_0^t
+    \phi(s)\,dW_s,
+    \qquad
+    \phi(s)
+    =
+    e^{-(B(t)-B(s))/2}
+    \sqrt{\beta(s)}.
+\end{equation}
+Then $x_t=e^{-B(t)/2}x_0+\eta_t$ and $\mathbb{E}[\eta_t|x_0]=0$.
+The conditional variance follows by subtracting the squared conditional mean:
+\begin{align}
+    \operatorname{Var}
+    \left[
+        x_t
+        \middle|x_0
+    \right]
+    &=
+    \mathbb{E}
+    \left[
+        x_t^2
+        \middle|x_0
+    \right]
+    -
+    \mathbb{E}
+    \left[
+        x_t
+        \middle|x_0
+    \right]^2
+    \nonumber \\
+    &=
+    \mathbb{E}
+    \left[
+        \left(
+            e^{-B(t)/2}x_0+\eta_t
+        \right)^2
+        \middle|x_0
+    \right]
+    -
+    e^{-B(t)}x_0^2
+    \nonumber \\
+    &=
+    e^{-B(t)}x_0^2
+    +
+    2e^{-B(t)/2}x_0
+    \mathbb{E}[\eta_t|x_0]
+    \nonumber \\
+    &\quad
+    +
+    \mathbb{E}[\eta_t^2|x_0]
+    -
+    e^{-B(t)}x_0^2
+    \nonumber \\
+    &=
+    \mathbb{E}
+    \left[
+        \eta_t^2
+        \middle|x_0
+    \right]
+    \nonumber \\
+    &=
+    \int_0^t
+    \phi^2(s)\,ds
+    \nonumber \\
+    &=
+    e^{-B(t)}
+    \int_0^t
+    e^{B(s)}
+    \beta(s)\,ds
+    \nonumber \\
+    &=
+    e^{-B(t)}
+    \int_0^t
+    \frac{d}{ds}
+    e^{B(s)}
+    \,ds
+    \nonumber \\
+    &=
+    1-e^{-B(t)}.
+\end{align}
+The conditional noise variance $1-e^{-B(t)}$ complements the squared signal coefficient $e^{-B(t)}$, which motivates the name variance-preserving.
 For a fixed initial condition $x_0$, the marginal transition distribution takes Gaussian form
 \begin{equation}
     \begin{aligned}
@@ -1299,12 +1504,7 @@ where
     \begin{aligned}
         \mu(t)
         &=
-        \exp
-        \left(
-            -\frac{1}{2}
-            \int_0^t
-            \beta(s)\,ds
-        \right),
+        e^{-B(t)/2},
         \\
         \sigma^2(t)
         &=
@@ -1313,14 +1513,18 @@ where
 \end{equation}
 For the linear schedule $\beta(t)=\beta_{\min}+t(\beta_{\max}-\beta_{\min})$,
 \begin{equation}
-    \int_0^t\beta(s)\,ds
-    =
-    \beta_{\min}t
-    +
-    \frac{1}{2}
-    \left(
-        \beta_{\max}-\beta_{\min}
-    \right)t^2,
+    \begin{aligned}
+        \int_0^t\beta(s)\,ds
+        &=
+        \beta_{\min}t
+        \\
+        &\quad
+        +
+        \frac{1}{2}
+        \left(
+            \beta_{\max}-\beta_{\min}
+        \right)t^2,
+    \end{aligned}
 \end{equation}
 which gives the $\mu(t)$ and $\sigma(t)$ expressions used in the main text.
 The conditional log density satisfies
@@ -1341,10 +1545,12 @@ The conditional log density satisfies
 where $C(t)$ does not depend on $x_t$.
 Differentiating with respect to $x_t$ gives
 \begin{equation}
-    \nabla_{x_t}\log p_{0t}(x_t|x_0)
-    =
-    -
-    \frac{x_t-\mu(t)x_0}{\sigma^2(t)}.
+    \begin{aligned}
+        \nabla_{x_t}\log p_{0t}(x_t|x_0)
+        &=
+        -
+        \frac{x_t-\mu(t)x_0}{\sigma^2(t)}.
+    \end{aligned}
 \end{equation}
 Using $x_t-\mu(t)x_0=\sigma(t)\epsilon$ gives the denoising score target
 \begin{equation}
@@ -1352,9 +1558,17 @@ Using $x_t-\mu(t)x_0=\sigma(t)\epsilon$ gives the denoising score target
         \nabla_{x_t}\log p_{0t}(x_t|x_0)
         &=
         -
-        \frac{\epsilon}{\sigma(t)}.
+        \frac{\epsilon}
+             {\sigma(t)}.
     \end{aligned}
 \end{equation}
+The quantity on the left is the conditional score,
+\begin{equation}
+    s_{0t}(x_t|x_0)
+    =
+    \nabla_{x_t}\log p_{0t}(x_t|x_0),
+\end{equation}
+and the diffusion network $s_\theta(x_t,t)$ learns to approximate this score from noisy samples.
 The training objective weights the squared score-matching error by $\sigma^2(t)$:
 \begin{equation}
     \begin{aligned}
@@ -1372,9 +1586,124 @@ The training objective weights the squared score-matching error by $\sigma^2(t)$
     \end{aligned}
 \end{equation}
 
+\subsection{Fokker-Planck Time Reversal}
+
+The score target above gives the quantity that the reverse-time sampler needs.
+To see why the score appears in the reverse SDE, start from a general forward diffusion
+\begin{equation}
+    dX_t
+    =
+    f(X_t,t)\,dt
+    +
+    g(t)\,dW_t
+\end{equation}
+with density $p_t(x)$.
+Its Fokker-Planck equation is
+\begin{equation}
+    \frac{\partial p_t}{\partial t}
+    =
+    -
+    \nabla_x\cdot
+    \left[
+        f(x,t)p_t(x)
+    \right]
+    +
+    \frac{1}{2}
+    g^2(t)\Delta_x p_t(x).
+\end{equation}
+Equivalently, the density evolves by a probability current,
+\begin{equation}
+    \begin{aligned}
+        \frac{\partial p_t}{\partial t}
+        &=
+        -
+        \nabla_x\cdot J_t(x),
+        \\
+        J_t(x)
+        &=
+        f(x,t)p_t(x)
+        -
+        \frac{1}{2}
+        g^2(t)\nabla_x p_t(x).
+    \end{aligned}
+\end{equation}
+The first term transports density through the deterministic drift.
+The second term is the diffusive current down the density gradient.
+
+Now define the backward-time process $Y_s=X_{T-s}$ and write its density as $q_s(y)=p_{T-s}(y)$.
+Because $t=T-s$,
+\begin{equation}
+    \frac{\partial q_s}{\partial s}
+    =
+    -
+    \frac{\partial p_t}{\partial t}
+    =
+    \nabla_y\cdot J_t(y).
+\end{equation}
+If $Y_s$ follows
+\begin{equation}
+    dY_s
+    =
+    \tilde f(Y_s,s)\,ds
+    +
+    g(T-s)\,d\bar W_s,
+\end{equation}
+then its Fokker-Planck equation is
+\begin{equation}
+    \begin{aligned}
+        \frac{\partial q_s}{\partial s}
+        &=
+        -
+        \nabla_y\cdot
+        \left[
+            \tilde f(y,s)q_s(y)
+        \right]
+        \\
+        &\quad
+        +
+        \frac{1}{2}
+        g^2(t)\Delta_y q_s(y).
+    \end{aligned}
+\end{equation}
+Substituting $q_s(y)=p_t(y)$ and matching this equation to $\partial_s q_s=\nabla_y\cdot J_t(y)$ gives
+\begin{equation}
+    \tilde f(y,s)p_t(y)
+    =
+    -
+    f(y,t)p_t(y)
+    +
+    g^2(t)\nabla_y p_t(y).
+\end{equation}
+Dividing by $p_t(y)$ converts the density-gradient term into the score:
+\begin{equation}
+    \tilde f(y,s)
+    =
+    -
+    f(y,t)
+    +
+    g^2(t)\nabla_y\log p_t(y),
+    \qquad
+    t=T-s.
+\end{equation}
+Thus the reverse dynamics in the increasing backward-time variable $s$ use $-f+g^2\nabla\log p_t$.
+If we keep the original time variable $t$ and integrate with $dt<0$, the equivalent reverse-time SDE is
+\begin{equation}
+    dX_t
+    =
+    \left[
+        f(X_t,t)
+        -
+        g^2(t)
+        \nabla_x\log p_t(X_t)
+    \right]dt
+    +
+    g(t)\,d\bar W_t.
+\end{equation}
+The reverse VP sampler below substitutes the VP drift, diffusion coefficient, and learned score into this equation.
+
 \subsection{Reverse-Time VP Sampler}
 
-For a general forward diffusion
+The Fokker-Planck time-reversal derivation above applies to the VP forward diffusion
 \begin{equation}
     dx_t
     =
@@ -1382,7 +1711,8 @@ For a general forward diffusion
     +
     g(t)\,dw_t,
 \end{equation}
-the reverse-time SDE uses drift
+with density $p_t(x)$.
+Keeping the original time variable and stepping with $dt<0$ gives the reverse drift
 \begin{equation}
     \begin{aligned}
         f(x_t,t)
@@ -1391,7 +1721,7 @@ the reverse-time SDE uses drift
         \nabla_{x_t}\log p_t(x_t)
     \end{aligned}
 \end{equation}
-when we integrate it backward in time.
+inside the reverse-time SDE.
 For the VP process,
 \begin{equation}
     \begin{aligned}
@@ -1404,7 +1734,20 @@ For the VP process,
         \beta(t).
     \end{aligned}
 \end{equation}
-Replacing the unknown score with the learned score model $s_\theta(x_t,t)$ gives the reverse drift
+Substituting these coefficients into the reverse-time formula gives
+\begin{equation}
+    dX_t
+    =
+    \left[
+        -\frac{1}{2}\beta(t)X_t
+        -
+        \beta(t)\nabla_x\log p_t(X_t)
+    \right]dt
+    +
+    \sqrt{\beta(t)}\,d\bar W_t,
+\end{equation}
+where numerical sampling uses $dt<0$.
+Replacing the unknown score $\nabla_x\log p_t(x)$ with the learned score model $s_\theta(x,t)$ gives the model reverse drift
 \begin{equation}
     \begin{aligned}
         -\frac{1}{2}\beta(t)x_t
