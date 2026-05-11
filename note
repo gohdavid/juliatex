@@ -1,0 +1,69 @@
+\subsection*{1. Forward Process (Data to Noise)}
+We define a continuous-time Variance Preserving (VP) forward diffusion process over $t \in [0, 1]$. Let $x_0 \sim p_{\text{data}}(x)$ be a clean data sample. The marginal distribution at time $t$ is defined as:
+\begin{equation}
+    p_{0t}(x_t | x_0) = \mathcal{N}(x_t; \alpha_t x_0, \beta_t^2 I)
+\end{equation}
+
+We select a trigonometric noise schedule (the ``Cosine'' schedule) to ensure a slow initial variance growth and symmetric boundary conditions:
+\begin{equation}
+    \beta_t = \sin\left(\frac{\pi t}{2}\right), \quad \alpha_t = \cos\left(\frac{\pi t}{2}\right)
+\end{equation}
+
+By the fundamental trigonometric identity, this strictly satisfies the variance-preserving property for all $t$:
+\begin{equation}
+    \alpha_t^2 + \beta_t^2 = \cos^2\left(\frac{\pi t}{2}\right) + \sin^2\left(\frac{\pi t}{2}\right) = 1
+\end{equation}
+
+The data transition is implemented via the reparameterization trick:
+\begin{equation}
+    x_t = \alpha_t x_0 + \beta_t \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)
+\end{equation}
+At $t=0$, we have $x_0 = x_0$ (pure data). At $t=1$, we have $x_1 \sim \mathcal{N}(0, I)$ (pure noise).
+
+\subsection*{2. Score Matching Objective}
+We parameterize a neural network $s_\theta(x_t, t)$ to estimate the Stein score of the perturbed data distribution, $\nabla_{x_t} \log p_t(x_t)$. For our Gaussian transition kernel, the exact score is $-\frac{\epsilon}{\beta_t}$.
+
+We train the model using Denoising Score Matching (DSM) with a time-dependent weighting function $\lambda(t) = \beta_t^2$. The derivation from the standard DSM objective to our final MSE loss is as follows:
+\begin{align}
+    \mathcal{L}(\theta) &= \mathbb{E}{t, x_0, \epsilon} \left[ \lambda(t) \left\| s\theta(x_t, t) - \nabla_{x_t} \log p_{0t}(x_t | x_0) \right\|_2^2 \right] \nonumber \\
+    &= \mathbb{E}{t, x_0, \epsilon} \left[ \beta_t^2 \left\| s\theta(x_t, t) - \left( -\frac{\epsilon}{\beta_t} \right) \right\|_2^2 \right] \nonumber \\
+    &= \mathbb{E}{t, x_0, \epsilon} \left[ \beta_t^2 \left\| s\theta(x_t, t) + \frac{\epsilon}{\beta_t} \right\|_2^2 \right] \nonumber \\
+    &= \mathbb{E}{t, x_0, \epsilon} \left[ \left\| \beta_t s\theta(x_t, t) + \epsilon \right\|_2^2 \right]
+\end{align}
+
+\subsection*{3. Reverse Generative Process (Sampling)}
+Data generation is performed by integrating Anderson's Reverse SDE backward in time from $t=1$ to $t \approx 0$:
+\begin{equation}
+    dx_t = \left[ f(t)x_t - g(t)^2 s_\theta(x_t, t) \right] dt + g(t) d\bar{w}_t
+\end{equation}
+
+The drift coefficient $f(t)$ is derived directly from the mean of the marginal distribution $m(t) = \alpha_t x_0$:
+\begin{equation}
+    f(t) = \frac{\dot{\alpha}_t}{\alpha_t} = \frac{-\frac{\pi}{2}\sin\left(\frac{\pi t}{2}\right)}{\cos\left(\frac{\pi t}{2}\right)} = -\frac{\pi}{2} \tan\left(\frac{\pi t}{2}\right)
+\end{equation}
+
+The diffusion coefficient $g(t)^2$ is derived from the variance $v(t) = \beta_t^2$:
+\begin{equation}
+    g(t)^2 = \frac{d}{dt}(\beta_t^2) - 2f(t)\beta_t^2
+\end{equation}
+
+Because our schedule is strictly Variance Preserving ($\alpha_t^2 + \beta_t^2 = 1$), we know that $\beta_t^2 = 1 - \alpha_t^2$. Taking the derivative of both sides with respect to time yields $\frac{d}{dt}(\beta_t^2) = -2\alpha_t \dot{\alpha}_t$. 
+
+We can substitute this and $f(t) = \frac{\dot{\alpha}_t}{\alpha_t}$ into the equation for $g(t)^2$:
+\begin{align}
+    g(t)^2 &= -2\alpha_t \dot{\alpha}_t - 2\left(\frac{\dot{\alpha}_t}{\alpha_t}\right)(1 - \alpha_t^2) \nonumber \\
+    &= -2\alpha_t \dot{\alpha}_t - 2\frac{\dot{\alpha}_t}{\alpha_t} + 2\frac{\dot{\alpha}_t}{\alpha_t}\alpha_t^2 \nonumber \\
+    &= -2\alpha_t \dot{\alpha}_t - 2\frac{\dot{\alpha}_t}{\alpha_t} + 2\alpha_t \dot{\alpha}_t \nonumber \\
+    &= -2\frac{\dot{\alpha}_t}{\alpha_t} \nonumber \\
+    &= -2f(t)
+\end{align}
+
+Therefore, the stochastic noise parameter simplifies beautifully to:
+\begin{equation}
+    g(t)^2 = \pi \tan\left(\frac{\pi t}{2}\right)
+\end{equation}
+
+We solve this SDE numerically using the Euler-Maruyama method. Letting $\Delta t$ be the positive step size, the backward step from $t$ to $t - \Delta t$ is:
+\begin{equation}
+    x_{t-\Delta t} = x_t - \left[ f(t)x_t - g(t)^2 s_\theta(x_t, t) \right] \Delta t + g(t) \sqrt{\Delta t} \, z, \quad z \sim \mathcal{N}(0, I)
+\end{equation}
