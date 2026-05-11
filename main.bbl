@@ -1,12 +1,12 @@
 %apsrev4-2.bst 2019-01-14 (MD) hand-edited version of apsrev4-1.bst
 %Control: key (0)
-%Control: author (8) initials jnrlst
+%Control: author (72) initials jnrlst
 %Control: editor formatted (1) identically to author
-%Control: production of article title (0) allowed
+%Control: production of article title (-1) disabled
 %Control: page (0) single
 %Control: year (1) truncated
 %Control: production of eprint (0) enabled
-\begin{thebibliography}{0}%
+\begin{thebibliography}{14}%
 \makeatletter
 \providecommand \@ifxundefined [1]{%
  \@ifx{#1\undefined}
@@ -50,4 +50,161 @@
 \providecommand \BibitemShut  [1]{\csname bibitem#1\endcsname}%
 \let\auto@bib@innerbib\@empty
 %</preamble>
+\bibitem [{\citenamefont {Chen}\ \emph {et~al.}(2018)\citenamefont {Chen},
+  \citenamefont {Rubanova}, \citenamefont {Bettencourt},\ and\ \citenamefont
+  {Duvenaud}}]{chen2018}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {R.~T.~Q.}\
+  \bibnamefont {Chen}}, \bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont
+  {Rubanova}}, \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Bettencourt}},\ and\ \bibinfo {author} {\bibfnamefont {D.~K.}\ \bibnamefont
+  {Duvenaud}},\ }in\ \href
+  {https://papers.nips.cc/paper_files/paper/2018/hash/69386f6bb1dfed68692a24c8686939b9-Abstract.html}
+  {\emph {\bibinfo {booktitle} {Advances in Neural Information Processing
+  Systems}}},\ Vol.~\bibinfo {volume} {31}\ (\bibinfo  {publisher} {Curran
+  Associates, Inc.},\ \bibinfo {year} {2018})\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Grathwohl}\ \emph {et~al.}(2018)\citenamefont
+  {Grathwohl}, \citenamefont {Chen}, \citenamefont {Bettencourt}, \citenamefont
+  {Sutskever},\ and\ \citenamefont {Duvenaud}}]{grathwohl2018}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {W.}~\bibnamefont
+  {Grathwohl}}, \bibinfo {author} {\bibfnamefont {R.~T.~Q.}\ \bibnamefont
+  {Chen}}, \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont {Bettencourt}},
+  \bibinfo {author} {\bibfnamefont {I.}~\bibnamefont {Sutskever}},\ and\
+  \bibinfo {author} {\bibfnamefont {D.}~\bibnamefont {Duvenaud}},\ }\href
+  {https://doi.org/10.48550/arXiv.1810.01367} {\bibinfo {title} {{FFJORD}:
+  Free-form continuous dynamics for scalable reversible generative models}}
+  (\bibinfo {year} {2018}),\ \Eprint {https://arxiv.org/abs/1810.01367 [cs]}
+  {1810.01367 [cs]} \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Ho}\ \emph {et~al.}(2020)\citenamefont {Ho},
+  \citenamefont {Jain},\ and\ \citenamefont {Abbeel}}]{ho2020}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Ho}}, \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont {Jain}},\ and\
+  \bibinfo {author} {\bibfnamefont {P.}~\bibnamefont {Abbeel}},\ }in\ \href
+  {https://arxiv.org/abs/2006.11239} {\emph {\bibinfo {booktitle} {Advances in
+  Neural Information Processing Systems}}},\ Vol.~\bibinfo {volume} {33}\
+  (\bibinfo {year} {2020})\ pp.\ \bibinfo {pages} {6840--6851},\ \Eprint
+  {https://arxiv.org/abs/2006.11239} {arXiv:2006.11239 [cs.LG]} \BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Song}\ \emph {et~al.}(2021)\citenamefont {Song},
+  \citenamefont {Sohl-Dickstein}, \citenamefont {Kingma}, \citenamefont
+  {Kumar}, \citenamefont {Ermon},\ and\ \citenamefont {Poole}}]{song2021}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont
+  {Song}}, \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Sohl-Dickstein}}, \bibinfo {author} {\bibfnamefont {D.~P.}\ \bibnamefont
+  {Kingma}}, \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont {Kumar}},
+  \bibinfo {author} {\bibfnamefont {S.}~\bibnamefont {Ermon}},\ and\ \bibinfo
+  {author} {\bibfnamefont {B.}~\bibnamefont {Poole}},\ }\href
+  {https://doi.org/10.48550/arXiv.2011.13456} {\bibinfo {title} {Score-based
+  generative modeling through stochastic differential equations}} (\bibinfo
+  {year} {2021}),\ \Eprint {https://arxiv.org/abs/2011.13456 [cs]} {2011.13456
+  [cs]} \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Noé}\ \emph {et~al.}(2019)\citenamefont {Noé},
+  \citenamefont {Olsson}, \citenamefont {Köhler},\ and\ \citenamefont
+  {Wu}}]{noe2019}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Noé}}, \bibinfo {author} {\bibfnamefont {S.}~\bibnamefont {Olsson}},
+  \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont {Köhler}},\ and\ \bibinfo
+  {author} {\bibfnamefont {H.}~\bibnamefont {Wu}},\ }\href
+  {https://doi.org/10.1126/science.aaw1147} {\bibfield  {journal} {\bibinfo
+  {journal} {Science}\ }\textbf {\bibinfo {volume} {365}},\ \bibinfo {pages}
+  {eaaw1147} (\bibinfo {year} {2019})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Arts}\ \emph {et~al.}(2023)\citenamefont {Arts},
+  \citenamefont {Garcia~Satorras}, \citenamefont {Huang}, \citenamefont
+  {Zügner}, \citenamefont {Federici}, \citenamefont {Clementi}, \citenamefont
+  {Noé}, \citenamefont {Pinsler},\ and\ \citenamefont {van~den
+  Berg}}]{arts2023}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Arts}}, \bibinfo {author} {\bibfnamefont {V.}~\bibnamefont
+  {Garcia~Satorras}}, \bibinfo {author} {\bibfnamefont {C.-W.}\ \bibnamefont
+  {Huang}}, \bibinfo {author} {\bibfnamefont {D.}~\bibnamefont {Zügner}},
+  \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Federici}}, \bibinfo
+  {author} {\bibfnamefont {C.}~\bibnamefont {Clementi}}, \bibinfo {author}
+  {\bibfnamefont {F.}~\bibnamefont {Noé}}, \bibinfo {author} {\bibfnamefont
+  {R.}~\bibnamefont {Pinsler}},\ and\ \bibinfo {author} {\bibfnamefont
+  {R.}~\bibnamefont {van~den Berg}},\ }\href
+  {https://doi.org/10.1021/acs.jctc.3c00702} {\bibfield  {journal} {\bibinfo
+  {journal} {Journal of Chemical Theory and Computation}\ }\textbf {\bibinfo
+  {volume} {19}},\ \bibinfo {pages} {6151} (\bibinfo {year}
+  {2023})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Rouse}(1953)}]{rouse1953}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {P.~E.}\ \bibnamefont
+  {Rouse}},\ }\href {https://doi.org/10.1063/1.1699180} {\bibfield  {journal}
+  {\bibinfo  {journal} {The Journal of Chemical Physics}\ }\textbf {\bibinfo
+  {volume} {21}},\ \bibinfo {pages} {1272} (\bibinfo {year}
+  {1953})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Honda}\ \emph {et~al.}(2004)\citenamefont {Honda},
+  \citenamefont {Yamasaki}, \citenamefont {Sawada},\ and\ \citenamefont
+  {Morii}}]{honda2004}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {S.}~\bibnamefont
+  {Honda}}, \bibinfo {author} {\bibfnamefont {K.}~\bibnamefont {Yamasaki}},
+  \bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont {Sawada}},\ and\ \bibinfo
+  {author} {\bibfnamefont {H.}~\bibnamefont {Morii}},\ }\href
+  {https://doi.org/10.1016/j.str.2004.05.022} {\bibfield  {journal} {\bibinfo
+  {journal} {Structure}\ }\textbf {\bibinfo {volume} {12}},\ \bibinfo {pages}
+  {1507} (\bibinfo {year} {2004})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Satoh}\ \emph {et~al.}(2006)\citenamefont {Satoh},
+  \citenamefont {Shimizu}, \citenamefont {Nakamura},\ and\ \citenamefont
+  {Terada}}]{satoh2006}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {D.}~\bibnamefont
+  {Satoh}}, \bibinfo {author} {\bibfnamefont {K.}~\bibnamefont {Shimizu}},
+  \bibinfo {author} {\bibfnamefont {S.}~\bibnamefont {Nakamura}},\ and\
+  \bibinfo {author} {\bibfnamefont {T.}~\bibnamefont {Terada}},\ }\href
+  {https://doi.org/10.1016/j.febslet.2006.05.015} {\bibfield  {journal}
+  {\bibinfo  {journal} {{FEBS} Letters}\ }\textbf {\bibinfo {volume} {580}},\
+  \bibinfo {pages} {3422} (\bibinfo {year} {2006})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Hutchinson}(1989)}]{hutchinson1989}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {M.~F.}\ \bibnamefont
+  {Hutchinson}},\ }\href {https://doi.org/10.1080/03610918908812806} {\bibfield
+   {journal} {\bibinfo  {journal} {Communications in Statistics - Simulation
+  and Computation}\ }\textbf {\bibinfo {volume} {18}},\ \bibinfo {pages} {1059}
+  (\bibinfo {year} {1989})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Rackauckas}\ and\ \citenamefont
+  {Nie}(2017)}]{rackauckas2017}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {C.}~\bibnamefont
+  {Rackauckas}}\ and\ \bibinfo {author} {\bibfnamefont {Q.}~\bibnamefont
+  {Nie}},\ }\href {https://doi.org/10.5334/jors.151} {\bibfield  {journal}
+  {\bibinfo  {journal} {Journal of Open Research Software}\ }\textbf {\bibinfo
+  {volume} {5}},\ \bibinfo {pages} {15} (\bibinfo {year} {2017})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Roosta-Khorasani}\ and\ \citenamefont
+  {Ascher}(2015)}]{roostakhorasani2015}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Roosta-Khorasani}}\ and\ \bibinfo {author} {\bibfnamefont {U.}~\bibnamefont
+  {Ascher}},\ }\href {https://doi.org/10.1007/s10208-014-9220-1} {\bibfield
+  {journal} {\bibinfo  {journal} {Foundations of Computational Mathematics}\
+  }\textbf {\bibinfo {volume} {15}},\ \bibinfo {pages} {1187} (\bibinfo {year}
+  {2015})},\ \Eprint {https://arxiv.org/abs/1308.2475} {arXiv:1308.2475}
+  \BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Sohl-Dickstein}\ \emph {et~al.}(2015)\citenamefont
+  {Sohl-Dickstein}, \citenamefont {Weiss}, \citenamefont {Maheswaranathan},\
+  and\ \citenamefont {Ganguli}}]{sohldickstein2015}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Sohl-Dickstein}}, \bibinfo {author} {\bibfnamefont {E.~A.}\ \bibnamefont
+  {Weiss}}, \bibinfo {author} {\bibfnamefont {N.}~\bibnamefont
+  {Maheswaranathan}},\ and\ \bibinfo {author} {\bibfnamefont {S.}~\bibnamefont
+  {Ganguli}},\ }in\ \href
+  {https://proceedings.mlr.press/v37/sohl-dickstein15.html} {\emph {\bibinfo
+  {booktitle} {Proceedings of the 32nd International Conference on Machine
+  Learning}}}\ (\bibinfo {year} {2015})\ pp.\ \bibinfo {pages}
+  {2256--2265}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Anderson}(1982)}]{anderson1982}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.~D.~O.}\
+  \bibnamefont {Anderson}},\ }\href
+  {https://doi.org/10.1016/0304-4149(82)90051-5} {\bibfield  {journal}
+  {\bibinfo  {journal} {Stochastic Processes and their Applications}\ }\textbf
+  {\bibinfo {volume} {12}},\ \bibinfo {pages} {313} (\bibinfo {year}
+  {1982})}\BibitemShut {NoStop}%
 \end{thebibliography}%
