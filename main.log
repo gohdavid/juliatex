@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.3.13)  10 MAY 2026 20:40
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.3.13)  10 MAY 2026 22:57
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -368,8 +368,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 35--38
  []
 
 
-Underfull \hbox (badness 2103) in paragraph at lines 35--38
-\TU/Arial(0)/m/n/10 local log-density gradients that govern overdamped
+Underfull \hbox (badness 6675) in paragraph at lines 35--38
+\TU/Arial(0)/m/n/10 stochastic process generates equilibrium samples,
+ []
+
+
+Underfull \hbox (badness 1117) in paragraph at lines 35--38
+\TU/Arial(0)/m/n/10 and the simulator provides the corresponding score
  []
 
 LaTeX Font Info:    Trying to load font information for U+msa on input line 39.
@@ -383,29 +388,55 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 39.
 (/usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-Underfull \hbox (badness 2005) in paragraph at lines 68--71
-[]\TU/Arial(0)/m/n/10 For atomistic molecular systems, the longer-term
+Underfull \hbox (badness 1675) in paragraph at lines 57--58
+[]\TU/Arial(0)/m/n/10 At equilibrium, the stationary-density score deter-
+ []
+
+
+Underfull \hbox (badness 1675) in paragraph at lines 97--98
+[]\TU/Arial(0)/m/n/10 At thermal equilibrium, the Boltzmann distribution
  []
 
 [1] [2]
-Underfull \hbox (badness 3428) in paragraph at lines 239--240
-[]\TU/Arial(0)/m/n/10 Hairpin stabilization is implemented by attractive
+Underfull \hbox (badness 1478) in paragraph at lines 239--240
+[]\TU/Arial(0)/m/n/10 Attractive Lennard-Jones contacts between paired
  []
 
 [3]
-Underfull \hbox (badness 1270) in paragraph at lines 555--560
-\TU/Arial(0)/m/n/10 as a \TU/lmtt/m/n/10 SDEProblem\TU/Arial(0)/m/n/10 , with t
-he drift function calling the
+Underfull \hbox (badness 3189) in paragraph at lines 505--507
+\TU/Arial(0)/m/n/10 The Euler-Maruyama sampler starts from centered
+ []
+
+
+Underfull \hbox (badness 4132) in paragraph at lines 545--548
+[]\TU/Arial(0)/m/n/10 We build the implementation around the SciML
+ []
+
+
+Underfull \hbox (badness 1142) in paragraph at lines 545--548
+\TU/Arial(0)/m/n/10 compatible array code, and several trace-estimation
+ []
+
+
+Underfull \hbox (badness 1389) in paragraph at lines 555--560
+\TU/Arial(0)/m/n/10 as a \TU/lmtt/m/n/10 SDEProblem\TU/Arial(0)/m/n/10 ; the dr
+ift function calls the same
+ []
+
+
+Underfull \hbox (badness 2521) in paragraph at lines 555--560
+\TU/Arial(0)/m/n/10 uses for score targets. The raw trajectory script
  []
 
 [4]
-Underfull \hbox (badness 2269) in paragraph at lines 590--594
-\TU/Arial(0)/m/n/10 The same problem definition is solved forward for
+Underfull \hbox (badness 2617) in paragraph at lines 566--567
+[]\TU/Arial(0)/m/n/10 The CNF implementation defines an \TU/lmtt/m/n/10 ODEProb
+lem
  []
 
 
-Underfull \hbox (badness 1117) in paragraph at lines 590--594
-\TU/Arial(0)/m/n/10 likelihood evaluation and backward for sample gen-
+Underfull \hbox (badness 3386) in paragraph at lines 590--594
+\TU/Arial(0)/m/n/10 for likelihood evaluation and backward for sample
  []
 
 
@@ -415,28 +446,60 @@ Underfull \hbox (badness 10000) in paragraph at lines 590--594
  []
 
 [5]
-Underfull \hbox (badness 1762) in paragraph at lines 711--714
-\TU/Arial(0)/m/n/10 validates the score-learning components on Brown-
+Underfull \hbox (badness 3088) in paragraph at lines 706--709
+[]\TU/Arial(0)/m/n/10 Both CNF and diffusion training use Zygote for
  []
 
 
-Underfull \hbox (badness 1648) in paragraph at lines 717--720
-[]\TU/Arial(0)/m/n/10 The current codebase should be described as a
+Underfull \hbox (badness 3482) in paragraph at lines 715--717
+[]\TU/Arial(0)/m/n/10 We can summarize the full long-term BoltzFlow
  []
 
-(./main.bbl) [6] (./main.aux)
+
+Underfull \hbox (badness 2913) in paragraph at lines 763--766
+[]\TU/Arial(0)/m/n/10 We should describe the current codebase as a
+ []
+
+[6]
+Underfull \hbox (badness 5050) in paragraph at lines 1004--1006
+\TU/Arial(0)/m/n/10 Dividing by $\OML/cmm/m/it/10 p$ \TU/Arial(0)/m/n/10 gives 
+the instantaneous change-of-
+ []
+
+[7]
+Underfull \hbox (badness 10000) in paragraph at lines 1132--1137
+[]\TU/Arial(0)/m/n/10 This subsection writes the analytic JVP that
+ []
+
+
+Underfull \hbox (badness 2856) in paragraph at lines 1132--1137
+\TU/lmtt/m/n/10 _egnn_velocity_jvp \TU/Arial(0)/m/n/10 implements. At layer $\O
+ML/cmm/m/it/10 `$\TU/Arial(0)/m/n/10 , the
+ []
+
+[8]
+Underfull \hbox (badness 2142) in paragraph at lines 1257--1259
+\TU/Arial(0)/m/n/10 This recursion gives the full analytic JVP that the
+ []
+
+
+Underfull \hbox (badness 3826) in paragraph at lines 1357--1359
+\TU/Arial(0)/m/n/10 The training objective weights the squared score-
+ []
+
+(./main.bbl) [9] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 6795 strings out of 468168
- 148554 string characters out of 5432815
- 622356 words of memory out of 5000000
- 35461 multiletter control sequences out of 15000+600000
+ 6797 strings out of 468168
+ 148612 string characters out of 5432815
+ 629356 words of memory out of 5000000
+ 35463 multiletter control sequences out of 15000+600000
  632345 words of font info for 78 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 73i,15n,93p,311b,242s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 73i,15n,93p,321b,242s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.xdv (6 pages, 204468 bytes).
+Output written on main.pdf (9 pages).
