@@ -770,6 +770,10 @@ The code supports a narrower practical claim: we can train equivariant CNF and d
 
 \section{Derivations}
 
+Throughout the appendix, the \emph{score} of a density $p(x)$ means the gradient of its log density, $\nabla_x\log p(x)$.
+It points in the direction where the log probability increases most rapidly.
+For stochastic differential equations, $dW_t$ denotes a Brownian increment with mean zero and variance $dt$, so terms proportional to $dW_t$ create fluctuations of size $\sqrt{dt}$ while drift terms proportional to $dt$ create deterministic motion.
+
 \subsection{Boltzmann Score and Conservative Forces}
 
 At equilibrium, an atomistic configuration $\vec{q}$ with potential energy $V(\vec{q})$ follows the Boltzmann density
@@ -949,7 +953,163 @@ Explicitly, the endpoints satisfy
 \end{align}
 The uncentered Rouse potential is invariant to global translations, so the equilibrium density has a translation zero mode.
 The experiments remove this mode by centering every configuration before training and evaluation; the models therefore learn the internal conformational distribution rather than center-of-mass diffusion.
-This derivation recovers the force rule that the simulator uses.
+
+The nonideal hairpin experiment adds pair potentials to the same score.
+For a pair $(i,j)$, write
+\begin{equation}
+    r_{ij}=x_i-x_j,
+    \qquad
+    \rho_{ij}^2
+    =
+    \|r_{ij}\|^2+\delta^2,
+\end{equation}
+where $\delta$ is the softening length used in the simulator.
+Cutoffs and bonded-neighbor exclusions select which pairs contribute.
+For any active pair potential $U_{ij}(\rho_{ij})$, the pair score on bead $i$ is
+\begin{equation}
+    s_{i\leftarrow j}(x)
+    =
+    -\nabla_{x_i}U_{ij},
+    \qquad
+    s_{j\leftarrow i}(x)
+    =
+    -s_{i\leftarrow j}(x).
+\end{equation}
+
+Excluded volume uses the repulsive power-law potential
+\begin{equation}
+    U_{\mathrm{EV},ij}
+    =
+    \epsilon_{\mathrm{EV}}
+    \left(
+        \frac{\sigma_{\mathrm{EV}}}
+             {\rho_{ij}}
+    \right)^p.
+\end{equation}
+Differentiating gives the score contribution
+\begin{equation}
+    s^{\mathrm{EV}}_{i\leftarrow j}
+    =
+    \epsilon_{\mathrm{EV}}
+    p
+    \frac{\sigma_{\mathrm{EV}}^p}
+         {\rho_{ij}^{p+2}}
+    r_{ij}.
+\end{equation}
+This vector points away from bead $j$, so the term penalizes bead overlap.
+The hairpin run enables this term with the base defaults
+\begin{equation}
+    \begin{aligned}
+        \epsilon_{\mathrm{EV}}
+        &=
+        0.03,
+        &
+        \sigma_{\mathrm{EV}}
+        &=
+        1.0,
+        &
+        p
+        &=
+        12,
+        \\
+        \delta
+        &=
+        0.3,
+        &
+        r_{\mathrm{cut}}
+        &=
+        1.5.
+    \end{aligned}
+\end{equation}
+and excludes bonded neighbors.
+
+The Lennard-Jones potential used for attractive hairpin contacts is
+\begin{equation}
+    U_{\mathrm{LJ},ij}
+    =
+    4\epsilon
+    \left[
+        \left(
+            \frac{\sigma}
+                 {\rho_{ij}}
+        \right)^{12}
+        -
+        \left(
+            \frac{\sigma}
+                 {\rho_{ij}}
+        \right)^6
+    \right].
+\end{equation}
+Define
+\begin{equation}
+    a_{ij}
+    =
+    \frac{\sigma^2}
+         {\rho_{ij}^2},
+    \qquad
+    a_{ij}^3
+    =
+    \left(
+        \frac{\sigma}
+             {\rho_{ij}}
+    \right)^6,
+    \qquad
+    a_{ij}^6
+    =
+    \left(
+        \frac{\sigma}
+             {\rho_{ij}}
+    \right)^{12}.
+\end{equation}
+Then the LJ score contribution is
+\begin{equation}
+    s^{\mathrm{LJ}}_{i\leftarrow j}
+    =
+    24\epsilon
+    \frac{1}{\rho_{ij}^2}
+    \left(
+        2a_{ij}^6-a_{ij}^3
+    \right)
+    r_{ij}.
+\end{equation}
+The first term is strongly repulsive at short distance, while the second term creates attraction once the beads are outside the repulsive core.
+The code optionally subtracts the LJ energy value at the cutoff; this shift changes the potential by a constant inside the cutoff and therefore does not change the score.
+The hairpin experiment applies this LJ term only to paired beads
+\begin{equation}
+    \mathcal{H}
+    =
+    \left\{
+        (i,j):
+        i+j=N+1,
+        \ |i-j|\geq s_{\min}
+    \right\},
+\end{equation}
+with
+\begin{equation}
+    \begin{aligned}
+        \epsilon_{\mathrm{hp}}
+        &=
+        5.0,
+        &
+        \sigma_{\mathrm{hp}}
+        &=
+        0.9,
+        &
+        \delta_{\mathrm{hp}}
+        &=
+        0.3,
+        \\
+        r_{\mathrm{cut}}
+        &=
+        3.0,
+        &
+        s_{\min}
+        &=
+        2.
+    \end{aligned}
+\end{equation}
+For the hairpin system, the full equilibrium score is the sum of the bonded Rouse score, all active excluded-volume pair scores, the active hairpin LJ pair scores, and the centered confinement score.
+This combined expression is the target produced by \texttt{polymer\_langevin\_score!}; multiplying it by $D$ gives the Brownian drift used in simulation.
 
 \subsection{Continuous Normalizing Flow Log Density}
 
@@ -971,7 +1131,46 @@ Conservation of probability under deterministic transport gives the continuity e
     =
     0.
 \end{equation}
-Expanding the divergence gives
+To expand the divergence term, apply the product rule component by component.
+If $z_m$ denotes one coordinate of $z$, then
+\begin{equation}
+    \begin{aligned}
+        \nabla_z\cdot
+        \left(
+            p f_\theta
+        \right)
+        &=
+        \sum_m
+        \frac{\partial}
+             {\partial z_m}
+        \left(
+            p f_{\theta,m}
+        \right)
+        \\
+        &=
+        \sum_m
+        \left[
+            f_{\theta,m}
+            \frac{\partial p}{\partial z_m}
+            +
+            p
+            \frac{\partial f_{\theta,m}}
+                 {\partial z_m}
+        \right]
+        \\
+        &=
+        f_\theta\cdot\nabla_z p
+        +
+        p
+        \operatorname{Tr}
+        \left(
+            \frac{\partial f_\theta}{\partial z}
+        \right).
+    \end{aligned}
+\end{equation}
+The first term says that the vector field carries density along its direction of motion.
+The second term measures local expansion or compression of the flow through the divergence $\nabla_z\cdot f_\theta=\operatorname{Tr}(\partial f_\theta/\partial z)$.
+Substituting this product-rule expansion gives
 \begin{equation}
     \frac{\partial p}{\partial \tau}
     +
@@ -1102,6 +1301,19 @@ and evaluates
 \subsection{Hutchinson Trace Estimator}
 
 Let $A$ denote the Jacobian matrix $\partial f_\theta/\partial x$.
+The CNF log-density equation needs the divergence of the vector field,
+\begin{equation}
+    \nabla_x\cdot f_\theta(x,\tau)
+    =
+    \operatorname{Tr}
+    \left(
+        \frac{\partial f_\theta}{\partial x}
+    \right).
+\end{equation}
+This trace is the sum of all same-coordinate sensitivities:
+how much each output coordinate changes when its matching input coordinate changes.
+For a large bead system, forming the full Jacobian is wasteful because the CNF only needs this one scalar trace.
+Hutchinson's estimator recovers that scalar from a random probe and one Jacobian-vector product.
 For a Rademacher probe $v$ with independent entries satisfying
 \begin{equation}
     \mathbb{E}[v_i]=0,
@@ -1134,11 +1346,48 @@ Thus
     v
 \end{equation}
 gives an unbiased stochastic estimate of the divergence.
-Here $Av$ is the directional derivative of the vector field along the probe direction, and the outer product with $v^T$ contracts that directional response to one scalar.
-The independent Rademacher signs cancel cross terms $A_{ij}v_i v_j$ for $i\neq j$ in expectation, while each diagonal term keeps $v_i^2=1$, leaving exactly $\sum_i A_{ii}=\operatorname{Tr}(A)$.
-For bead coordinates, the flattened index $i$ represents a bead-coordinate pair $(a,k)$, so this trace sums the response of $f_{\theta,a,k}$ to its matching input $x_{a,k}$.
-In the SciML code path, \texttt{\_cnf\_problem} samples one $\{-1,+1\}$ probe with the same shape as the batch coordinates before constructing the \texttt{ODEProblem}.
-The ODE RHS closes over that probe, so adaptive substeps, rejected steps, and adjoint replay all use the same stochastic trace direction for the solve; changing probes at every RHS call would instead add artificial time-dependent noise to the ODE.
+Here ``unbiased'' means the estimate may vary for one random probe, but its average over probes equals the exact trace.
+The same calculation can be read component by component.
+The matrix-vector product $Av$ has entries
+\begin{equation}
+    (Av)_i
+    =
+    \sum_j
+    A_{ij}v_j,
+\end{equation}
+so the scalar Hutchinson estimate is
+\begin{equation}
+    v^TAv
+    =
+    \sum_i
+    v_i(Av)_i
+    =
+    \sum_i\sum_j
+    A_{ij}v_i v_j.
+\end{equation}
+If $i\neq j$, then $v_i$ and $v_j$ are independent signs, so $\mathbb{E}[v_i v_j]=0$.
+If $i=j$, then $v_i^2=1$.
+Thus the random probe removes the off-diagonal terms in expectation and keeps the diagonal terms:
+\begin{equation}
+    \mathbb{E}[v^TAv]
+    =
+    \sum_i
+    A_{ii}.
+\end{equation}
+For bead coordinates, the index $i$ in this argument represents one bead-coordinate pair $(a,k)$.
+The trace therefore sums each matching response
+\begin{equation}
+    \operatorname{Tr}(A)
+    =
+    \sum_{a,k}
+    \frac{\partial f_{\theta,a,k}}
+         {\partial x_{a,k}}.
+\end{equation}
+
+In the SciML implementation, \texttt{\_cnf\_problem} samples one $\{-1,+1\}$ probe with the same shape as the batch coordinates before it constructs the \texttt{ODEProblem}.
+The ODE right-hand side keeps that probe fixed for the whole solve.
+Adaptive substeps, rejected steps, and adjoint replay therefore evaluate the same trace direction.
+If the code drew a new probe at every RHS call, the ODE would see extra time-dependent noise rather than one well-defined stochastic trace estimate.
 For each RHS call, the augmented derivative has the schematic form
 \begin{equation}
     \frac{d}{d\tau}
@@ -1181,12 +1430,25 @@ This subsection writes the analytic JVP that \texttt{\_egnn\_velocity\_jvp} impl
 At layer $\ell$, the EGNN stores node features $h_i^\ell$ and coordinate state $x_i$.
 The JVP in this subsection differentiates the vector field with respect to coordinates in the probe direction $v$.
 It does not compute a parameter derivative; Zygote still differentiates the final CNF loss with respect to the trainable parameters after the code computes this coordinate JVP.
+The notation $d(\cdot)$ means directional derivative along the perturbed coordinates $x+\alpha v$:
+\begin{equation}
+    dQ
+    =
+    \left.
+    \frac{d}{d\alpha}
+    Q(x+\alpha v)
+    \right|_{\alpha=0}.
+\end{equation}
+For example, $dx_i=v_i$ because the perturbed coordinate is $x_i+\alpha v_i$.
+The goal is to propagate these $d(\cdot)$ quantities through the same operations that compute the EGNN velocity.
+At the end, the propagated derivative is exactly $J_{f_\theta}(x,\tau)v$.
 For a coordinate probe $v_i$, the JVP stores
 \begin{equation}
     dx_i=v_i,
     \qquad
     dh_i^0=0.
 \end{equation}
+The initial node features have zero directional derivative because they are learned bead embeddings and do not change when the coordinates move.
 The pairwise relative displacement and squared distance satisfy
 \begin{equation}
     r_{ij}=x_i-x_j,
@@ -1195,10 +1457,21 @@ The pairwise relative displacement and squared distance satisfy
 \end{equation}
 with directional derivatives
 \begin{equation}
-    dr_{ij}=v_i-v_j,
-    \qquad
-    dd_{ij}=2r_{ij}^Tdr_{ij}.
+    \begin{aligned}
+        dr_{ij}
+        &=
+        dx_i-dx_j
+        =
+        v_i-v_j,
+        \\
+        dd_{ij}
+        &=
+        d(r_{ij}^T r_{ij})
+        =
+        2r_{ij}^Tdr_{ij}.
+    \end{aligned}
 \end{equation}
+Thus the JVP first tracks how each pair displacement and squared pair distance changes under the probe.
 The edge network receives
 \begin{equation}
     e_{ij}^\ell
@@ -1223,6 +1496,7 @@ and directional input
         0
     \right).
 \end{equation}
+The zero entries appear because sequence separation $i-j$ and pseudotime $\tau$ do not change when the coordinate probe moves $x$.
 The MLP JVP applies the chain rule layer by layer.
 For an affine transformation followed by $\tanh$,
 \begin{align}
@@ -1234,6 +1508,7 @@ For an affine transformation followed by $\tanh$,
     &
     dy^+ &= \left(1-\tanh^2(a)\right)\odot da.
 \end{align}
+This is the same rule used in ordinary calculus: differentiate each operation and pass the derivative to the next operation.
 The final layer omits the nonlinearity.
 The edge MLP therefore returns
 \begin{equation}
@@ -1242,6 +1517,8 @@ The edge MLP therefore returns
     (dw_{ij}^\ell,dm_{ij}^\ell),
 \end{equation}
 where $w_{ij}^\ell$ denotes the scalar coordinate weight and $m_{ij}^\ell$ denotes the node message.
+The scalar $w_{ij}^\ell$ controls how strongly bead $j$ moves bead $i$ along the relative displacement $r_{ij}$.
+The message $m_{ij}^\ell$ updates the hidden node features.
 With self-edge mask $M_{ij}$, the primal coordinate update is
 \begin{equation}
     \Delta x_i^\ell
@@ -1264,6 +1541,8 @@ The JVP follows from the product rule:
         w_{ij}^\ell dr_{ij}
     \right).
 \end{equation}
+This expression has two parts.
+The term $dw_{ij}^\ell r_{ij}$ captures how the learned scalar weight changes, and the term $w_{ij}^\ell dr_{ij}$ captures how the relative displacement itself changes.
 The node message aggregation is
 \begin{equation}
     \bar{m}_i^\ell
@@ -1289,6 +1568,7 @@ If the node MLP returns $\Delta h_i^\ell$ and $d\Delta h_i^\ell$, then
     =
     dh_i^\ell+d\Delta h_i^\ell.
 \end{equation}
+The EGNN repeats this process layer by layer: compute pair geometry, run the edge network, update coordinates, aggregate messages, and update node features, while carrying the matching directional derivatives alongside the ordinary values.
 After $L$ layers, the code returns
 \begin{equation}
     f_\theta(x,\tau)
@@ -1318,6 +1598,8 @@ DDPM defines a discrete noising Markov chain
         \beta_k I
     \right).
 \end{equation}
+Here $\beta_k$ is the noise variance added at step $k$.
+Choosing small $\beta_k$ makes each transition a small perturbation, so many steps produce a smooth path from data to noise.
 Equivalently,
 \begin{equation}
     x_k
@@ -1329,6 +1611,7 @@ Equivalently,
     \epsilon_k\sim\mathcal{N}(0,I).
 \end{equation}
 To obtain a continuous Markov noising process, take a small timestep $\Delta t$ and set $\beta_k=\beta(t)\Delta t$.
+The deterministic factor $\sqrt{1-\beta_k}$ slightly shrinks the current state, while the random term $\sqrt{\beta_k}\epsilon_k$ adds Gaussian noise with variance $\beta_k$.
 Using $\sqrt{1-\beta(t)\Delta t}=1-\frac{1}{2}\beta(t)\Delta t+o(\Delta t)$ gives
 \begin{align}
     x_{t+\Delta t}-x_t
@@ -1347,6 +1630,7 @@ The limit $\Delta t\to 0$ gives the VP forward SDE
     +
     \sqrt{\beta(t)}\,dW_t.
 \end{equation}
+This limit uses the Brownian scaling $dW_t\approx \sqrt{\Delta t}\epsilon_t$.
 This continuous process keeps the DDPM Markov structure while giving an SDE whose marginal transition density we can compute in closed form.
 Define
 \begin{equation}
@@ -1568,7 +1852,35 @@ The quantity on the left is the conditional score,
     =
     \nabla_{x_t}\log p_{0t}(x_t|x_0),
 \end{equation}
-and the diffusion network $s_\theta(x_t,t)$ learns to approximate this score from noisy samples.
+which is the score of the noised distribution when the clean starting point $x_0$ is known.
+The reverse SDE, however, requires the marginal score $\nabla_{x_t}\log p_t(x_t)$ after averaging over all possible clean configurations that could have produced the same noisy point.
+These two scores connect through
+\begin{equation}
+    \begin{aligned}
+        \nabla_{x_t}\log p_t(x_t)
+        &=
+        \frac{\nabla_{x_t}p_t(x_t)}
+             {p_t(x_t)}
+        \\
+        &=
+        \frac{
+            \int
+            p_0(x_0)
+            \nabla_{x_t}p_{0t}(x_t|x_0)
+            \,dx_0
+        }
+        {p_t(x_t)}
+        \\
+        &=
+        \mathbb{E}
+        \left[
+            \nabla_{x_t}\log p_{0t}(x_t|x_0)
+            \middle|x_t
+        \right].
+    \end{aligned}
+\end{equation}
+Thus training on pairs $(x_0,x_t)$ with the conditional target $-\epsilon/\sigma(t)$ teaches the network the conditional expectation that equals the marginal score needed by the reverse sampler.
+The diffusion network $s_\theta(x_t,t)$ learns to approximate this score from noisy samples.
 The training objective weights the squared score-matching error by $\sigma^2(t)$:
 \begin{equation}
     \begin{aligned}
@@ -1665,7 +1977,63 @@ then its Fokker-Planck equation is
         g^2(t)\Delta_y q_s(y).
     \end{aligned}
 \end{equation}
-Substituting $q_s(y)=p_t(y)$ and matching this equation to $\partial_s q_s=\nabla_y\cdot J_t(y)$ gives
+Substituting $q_s(y)=p_t(y)$ into this backward-time Fokker-Planck equation gives
+\begin{equation}
+    \begin{aligned}
+        \frac{\partial q_s}{\partial s}
+        &=
+        -
+        \nabla_y\cdot
+        \left[
+            \tilde f(y,s)p_t(y)
+        \right]
+        \\
+        &\quad
+        +
+        \frac{1}{2}
+        g^2(t)\Delta_y p_t(y).
+    \end{aligned}
+\end{equation}
+The reversed density must also satisfy $\partial_s q_s=\nabla_y\cdot J_t(y)$.
+Using the forward current $J_t(y)=f(y,t)p_t(y)-\frac{1}{2}g^2(t)\nabla_y p_t(y)$ gives
+\begin{equation}
+    \begin{aligned}
+        \frac{\partial q_s}{\partial s}
+        &=
+        \nabla_y\cdot
+        \left[
+            f(y,t)p_t(y)
+            -
+            \frac{1}{2}
+            g^2(t)\nabla_y p_t(y)
+        \right]
+        \\
+        &=
+        \nabla_y\cdot
+        \left[
+            f(y,t)p_t(y)
+        \right]
+        -
+        \frac{1}{2}
+        g^2(t)\Delta_y p_t(y).
+    \end{aligned}
+\end{equation}
+Equating the two expressions for $\partial_s q_s$ and moving the diffusion term gives
+\begin{equation}
+    -
+    \nabla_y\cdot
+    \left[
+        \tilde f(y,s)p_t(y)
+    \right]
+    =
+    \nabla_y\cdot
+    \left[
+        f(y,t)p_t(y)
+        -
+        g^2(t)\nabla_y p_t(y)
+    \right].
+\end{equation}
+Thus the reverse current can be written as
 \begin{equation}
     \tilde f(y,s)p_t(y)
     =
@@ -1686,7 +2054,28 @@ Dividing by $p_t(y)$ converts the density-gradient term into the score:
     t=T-s.
 \end{equation}
 Thus the reverse dynamics in the increasing backward-time variable $s$ use $-f+g^2\nabla\log p_t$.
-If we keep the original time variable $t$ and integrate with $dt<0$, the equivalent reverse-time SDE is
+This equation describes $Y_s=X_{T-s}$, so increasing $s$ means decreasing the original time $t$.
+Equivalently, $ds=-dt$.
+If we rewrite the same reverse process using the original variable $X_t$ and a negative timestep $dt<0$, the sign of the drift term changes:
+\begin{equation}
+    \tilde f\,ds
+    =
+    \left[
+        -
+        f
+        +
+        g^2\nabla\log p_t
+    \right](-dt)
+    =
+    \left[
+        f
+        -
+        g^2\nabla\log p_t
+    \right]dt.
+\end{equation}
+The Brownian motion also belongs to the reversed filtration, so we write it as $\bar W_t$ to distinguish reverse-time noise from the forward Brownian path $W_t$.
+The barred process has the same Brownian increment law, but a reverse simulation draws reverse-time increments rather than reusing the original forward increments.
+With this notation, the equivalent reverse-time SDE in the original time variable is
 \begin{equation}
     dX_t
     =
