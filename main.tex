@@ -19,7 +19,7 @@
 
 \begin{abstract}
 Our long-term goal is to learn models that infer molecular trajectories from static structural samples, including protein conformational ensembles.
-We first study controlled Brownian-dynamics synthetic systems where we can evaluate the equilibrium distribution and score field directly.
+We first study controlled Brownian-dynamics synthetic systems where we can evaluate the equilibrium distribution and score field directly, including base, ring-closure, and hairpin Rouse chains.
 The codebase uses Rouse-chain simulations as the main data source and compares two likelihood- or score-based models: an equivariant continuous normalizing flow (CNF) and an equivariant variance-preserving diffusion model \cite{chen2018,grathwohl2018,ho2020,song2021}.
 We train both models on centered coordinate snapshots and evaluate generated-configuration quality and agreement between learned log-density gradients and Brownian drift forces.
 \end{abstract}
@@ -63,38 +63,21 @@ If a model learns $p_{\mathrm{eq}}(x)$, its learned score should align with the 
 For the current base Rouse setting, this relation gives the score target $F(x)/0.25 = 4F(x)$.
 The current experiments therefore learn equilibrium coordinate distributions from static snapshots, then compare generated samples and learned score fields with known Rouse-chain quantities.
 
-\section{Hamiltonian and Boltzmann Background}
+\section{Overdamped Langevin and Detailed Balance}
 
-For atomistic molecular systems, we usually write the longer-term trajectory-inference framing in Hamiltonian form.
-Let $\vec{q}$ denote particle positions and $\vec{p}$ denote momenta.
-Hamilton's equations take the form
-\begin{align}
-    \frac{dq_{i,k}}{dt}
-    &=
-    \frac{\partial H}{\partial p_{i,k}},
-    \\
-    \frac{dp_{i,k}}{dt}
-    &=
-    -
-    \frac{\partial H}{\partial q_{i,k}},
-\end{align}
-where $i$ indexes particles and $k$ indexes spatial coordinates.
-For standard molecular dynamics, momenta satisfy
+The current experiments use overdamped Brownian dynamics rather than inertial molecular dynamics.
+In this regime, solvent friction damps momenta on a faster timescale than the configurational motion we model, so the state is the bead-coordinate configuration $x$ and not a position-momentum pair.
+For a physical coordinate vector $\vec{q}$ with potential energy $V(\vec{q})$, the overdamped Langevin SDE has the form
 \begin{equation}
-    p_{i,k} = m_i \frac{dq_{i,k}}{dt},
-\end{equation}
-and we decompose the Hamiltonian into kinetic and potential energy:
-\begin{equation}
-    H(\vec{q},\vec{p},t)
+    d\vec{q}_t
     =
-    KE(\vec{p}) + PE(\vec{q})
-    =
-    \sum_i \sum_k \frac{p_{i,k}^2}{2m_i}
+    -\mu
+    \nabla_{\vec{q}}V(\vec{q}_t)\,dt
     +
-    V(\vec{q}).
+    \sqrt{2D}\,dW_t,
 \end{equation}
-
-At thermal equilibrium, the Boltzmann distribution gives the probability of a configuration:
+where $\mu$ is the mobility and $D=\mu k_B T$ is the diffusion coefficient.
+The corresponding Boltzmann equilibrium density is
 \begin{equation}
     P(\vec{q})
     =
@@ -115,25 +98,46 @@ with partition function
     \right)
     d\vec{q}.
 \end{equation}
-Taking a gradient with respect to $q_{i,k}$ gives
-\begin{align}
-    \frac{dp_{i,k}}{dt}
-    &=
-    -
-    \frac{\partial H}{\partial q_{i,k}}
+The Fokker-Planck probability current for the general overdamped SDE
+\begin{equation}
+    dX_t
     =
+    F(X_t)\,dt
+    +
+    \sqrt{2D}\,dW_t
+\end{equation}
+is
+\begin{equation}
+    J(x)
+    =
+    F(x)p(x)
     -
-    \frac{\partial}{\partial q_{i,k}}
-    V(\vec{q})
-    \nonumber \\
-    &=
-    k_B T
-    \frac{\partial}{\partial q_{i,k}}
-    \log P(\vec{q}).
-\end{align}
-Thus, a model that evaluates or differentiates the equilibrium log density can provide a force-like quantity \cite{noe2019,arts2023}.
-This relation bridges generative density modeling and trajectory inference.
-In the present codebase, we test this idea first in the overdamped Brownian setting, where the corresponding relation is $F(x)=D\nabla_x\log p_{\mathrm{eq}}(x)$, or equivalently $\nabla_x\log p_{\mathrm{eq}}(x)=F(x)/D$.
+    D\nabla_x p(x).
+\end{equation}
+Detailed balance at equilibrium sets this current to zero pointwise:
+\begin{equation}
+    J_{\mathrm{eq}}(x)=0.
+\end{equation}
+Therefore
+\begin{equation}
+    F(x)p_{\mathrm{eq}}(x)
+    =
+    D\nabla_x p_{\mathrm{eq}}(x),
+\end{equation}
+and dividing by $p_{\mathrm{eq}}(x)$ gives
+\begin{equation}
+    F(x)
+    =
+    D\nabla_x\log p_{\mathrm{eq}}(x).
+\end{equation}
+Equivalently,
+\begin{equation}
+    \nabla_x\log p_{\mathrm{eq}}(x)
+    =
+    \frac{F(x)}{D}.
+\end{equation}
+This detailed-balance relation is the score target used throughout the current codebase.
+A model that evaluates or differentiates the equilibrium log density can therefore be tested against the analytic overdamped drift or force field supplied by the simulator \cite{noe2019,arts2023}.
 
 \section{Data}
 
@@ -146,6 +150,7 @@ where $B$ denotes the number of frames.
 The current polymer configs simulate two-dimensional chains with $N=32$ beads.
 For the base Rouse simulation, the SDE above generates trajectories with independent Brownian noise in every bead coordinate.
 The base simulation uses $D=0.25$, unit bond length, and $k_\xi=3.0$.
+The ring-closure and hairpin configurations inherit these base constants and add different structural constraints.
 The raw trajectories may include center-of-mass diffusion, but model training centers each frame so the models learn internal conformations rather than global translation.
 
 \section{Time Conventions}
@@ -161,8 +166,9 @@ These conventions match the implementation.
 
 \section{Synthetic Systems}
 
-We focus on two controlled synthetic systems: the base Rouse chain and a hairpin-stabilized Rouse chain \cite{rouse1953,honda2004,satoh2006}.
+We focus on three controlled synthetic systems: the base Rouse chain, a ring-closure Rouse chain, and a hairpin-stabilized Rouse chain \cite{rouse1953,honda2004,satoh2006}.
 The base system gives the simplest test of whether a model can learn the equilibrium distribution and score of a flexible Brownian polymer.
+The ring-closure system adds a single terminal harmonic bond, changing the chain topology while keeping the force law close to the base system.
 The hairpin system adds local structure through attractive nonlocal contacts and repulsive excluded volume.
 We do not intend it as a protein model, but it gives a minimal analogue of a stable folded motif: the chain moves thermally, while a subset of long-range contacts stabilizes a preferred conformation.
 
@@ -230,6 +236,31 @@ The current excluded-volume configuration inherits these defaults from the base 
 \end{align}
 This term prevents physically implausible bead overlap while preserving stochastic chain flexibility.
 
+\subsection*{Ring-Closure Rouse Chain}
+
+The ring-closure configuration starts from a circular initialization and then evolves with Brownian dynamics.
+For unit target bond length, the initializer places $N$ beads on a circle with radius
+\begin{equation}
+    R
+    =
+    \frac{1}{2\sin(\pi/N)}
+\end{equation}
+and adds Gaussian initialization noise with standard deviation $0.02$ before centering the frame.
+The current ring run uses $N=32$, $D=0.25$, $k_\xi=3.0$, and the same unit adjacent-bond length as the base chain.
+
+The ring-specific term adds a harmonic closure bond between beads $1$ and $N$:
+\begin{equation}
+    U_{\mathrm{ring}}(x)
+    =
+    U_{\mathrm{bond}}(x)
+    +
+    \frac{k_\xi}{2D}
+    \|x_1-x_N\|^2.
+\end{equation}
+This produces the same spring force as an adjacent Rouse bond, but applied across the chain ends.
+The configuration also enables excluded volume and centered confinement, with the same constants listed above, and leaves the optional ring Lennard-Jones contact disabled.
+Thus the ring experiment tests whether the model can learn a closed-polymer equilibrium distribution rather than only an open-chain distribution.
+
 \subsection*{Hairpin-Stabilized Chain}
 
 The hairpin system starts from a two-strand initialization.
@@ -279,6 +310,10 @@ Let $z(\tau)$ denote the CNF state at pseudotime $\tau \in [0,1]$:
 \end{equation}
 Here, $\tau$ is a generative-model coordinate, not physical Brownian time.
 The CNF integrates from data to noise for likelihood evaluation and from noise to data for sampling.
+This direct learned vector field is a strength of the CNF approach.
+The network learns the continuous transport velocity $f_\theta$ itself, so the same fitted ODE defines the path between the data distribution and the Gaussian base distribution.
+By contrast, the diffusion model fixes the forward noising SDE and learns the time-dependent score needed to build the reverse-time stochastic dynamics.
+Thus the CNF learns a deterministic continuous transport field, while the diffusion model learns a score correction for a prescribed noising process.
 
 The log-density evolves according to the instantaneous change-of-variables formula:
 \begin{equation}
@@ -540,6 +575,65 @@ while we take the diffusion score from the network output at a small time value 
 The evaluation scripts compare these scores with the known Brownian score target $F(x)/D$ and apply normalization corrections when the data normalizer runs.
 This benchmark goes beyond visual sample comparison: the model should generate plausible chain conformations and recover the local equilibrium score implied by the Brownian dynamics \cite{arts2023}.
 
+Table~\ref{tab:cnf-best-epoch} summarizes the best CNF checkpoint for each polymer system, using the lowest pairwise-distance energy as the selection criterion.
+The Gaussian baseline samples centered independent noise and is therefore only a structural baseline; it does not define a learned force field for the force-score diagnostics.
+
+\begin{table*}
+\caption{\label{tab:cnf-best-epoch}
+Best CNF checkpoint performance compared with centered Gaussian samples.
+Within each system, $x$ energy and $x$ MMD are pairwise-distance distribution metrics.
+Score MSE and score cosine are evaluated on 128 generated samples.
+Score-norm energy and score-norm MMD compare the model score-norm distributions on generated and training samples at the selected checkpoint.}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc ccccccc ccccccc}
+\hline\hline
+Model &
+\multicolumn{7}{c}{Base Rouse} &
+\multicolumn{7}{c}{Ring closure} &
+\multicolumn{7}{c}{Hairpin LJ} \\
+\cline{2-8}\cline{9-15}\cline{16-22}
+&
+Epoch &
+$x$ energy &
+$x$ MMD &
+Score MSE &
+Score cos. &
+Score-norm E &
+Score-norm MMD &
+Epoch &
+$x$ energy &
+$x$ MMD &
+Score MSE &
+Score cos. &
+Score-norm E &
+Score-norm MMD &
+Epoch &
+$x$ energy &
+$x$ MMD &
+Score MSE &
+Score cos. &
+Score-norm E &
+Score-norm MMD \\
+\hline
+Gaussian &
+-- &
+11.89 & 0.165 & -- & -- & -- & -- &
+-- &
+29.13 & 0.320 & -- & -- & -- & -- &
+-- &
+48.10 & 0.511 & -- & -- & -- & -- \\
+CNF &
+9 &
+0.100 & 0.002 & 0.789 & 0.987 & 0.668 & 0.036 &
+11 &
+2.388 & 0.047 & $2.82{\times}10^{9}$ & 0.100 & 8.676 & 0.187 &
+7 &
+3.469 & 0.088 & $2.45{\times}10^{13}$ & 0.050 & 8.422 & 0.139 \\
+\hline\hline
+\end{tabular}%
+}
+\end{table*}
+
 \section{Julia and SciML Implementation}
 
 We build the implementation around the SciML ecosystem \cite{rackauckas2017}.
@@ -709,10 +803,10 @@ Both CNF and diffusion training use Zygote for reverse-mode gradients.
 Several small custom adjoints remove avoidable AD overhead for common tensor operations such as batched node embeddings, row concatenation, and centering.
 The diffusion code also uses \texttt{Zygote.ignore} and \texttt{dropgrad} where fixed geometric inputs, masks, sampled noise, or numerical guards should not enter the trainable derivative path.
 
-The result keeps stochastic simulation, adaptive ODE solving, adjoint differentiation, neural network training, and GPU execution in one language and one type system.
+The result keeps SDE simulation for data generation, CNF ODE solving for likelihood and sampling, adjoint sensitivity for CNF training, neural network training, and GPU execution in one language and one type system.
 This gives Julia its main advantage for this project: the mathematical objects in the paper map directly to executable SciML problems, and the engineering choices needed for stability remain visible in the code rather than hidden behind a separate modeling layer.
 
-\section{Trajectory-Inference Algorithm}
+\section{Overdamped Trajectory-Inference Algorithm}
 
 We can summarize the full long-term BoltzFlow trajectory-inference idea from the earlier proposal as follows.
 First, obtain equilibrium snapshots
@@ -722,42 +816,25 @@ First, obtain equilibrium snapshots
     P(\vec{q}).
 \end{equation}
 Then train a CNF to model $P(\vec{q})$ and evaluate $\log P(\vec{q})$.
-For a trajectory initialized at $\vec{q}(t_0)$, sample momenta from the Maxwell-Boltzmann distribution,
-\begin{equation}
-    p_{i,k}(t_0)
-    \sim
-    \mathcal{N}
-    \left(
-        0,
-        m_i k_B T
-    \right).
-\end{equation}
 At each physical timestep, compute the CNF log density and its gradient:
 \begin{equation}
     \nabla_{\vec{q}} \log P(\vec{q}(t)).
 \end{equation}
-Using the Boltzmann relation,
+Under detailed balance for overdamped Langevin dynamics, this score determines the drift:
 \begin{equation}
-    -
-    \nabla_{\vec{q}} V(\vec{q})
+    F(\vec{q})
     =
-    k_B T
-    \nabla_{\vec{q}}
-    \log P(\vec{q}),
+    D\nabla_{\vec{q}}\log P(\vec{q}).
 \end{equation}
-update the momenta and positions with Hamilton's equations:
-\begin{align}
-    \frac{d\vec{p}}{dt}
-    &=
-    k_B T
-    \nabla_{\vec{q}}
-    \log P(\vec{q}),
-    \\
-    \frac{d\vec{q}}{dt}
-    &=
-    \frac{\partial H}{\partial \vec{p}}.
-\end{align}
-This Hamiltonian trajectory-inference loop motivates the protein-facing direction.
+One can then evolve an overdamped stochastic trajectory with
+\begin{equation}
+    d\vec{q}_t
+    =
+    D\nabla_{\vec{q}}\log P(\vec{q}_t)\,dt
+    +
+    \sqrt{2D}\,dW_t.
+\end{equation}
+This overdamped trajectory-inference loop matches the Brownian setting used in the current experiments.
 The current implementation does not yet execute this loop for atomistic proteins; instead, it validates the score-learning components on Brownian/Rouse systems where we know the target force field.
 
 \section{Current Scope}
@@ -831,7 +908,7 @@ CNF & \textbf{0.705} & \textbf{39.72} & \textbf{0.445} \\
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
 \caption{Placeholder caption for score norm distributions on Rouse base polymers only.}
-\label{fig:full_generation_grid}
+\label{fig:score_norm_density}
 \end{figure}
 
 \begin{figure}
@@ -839,7 +916,7 @@ CNF & \textbf{0.705} & \textbf{39.72} & \textbf{0.445} \\
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
 \caption{Placeholder caption for potential energy distributions on Rouse base polymers only.}
-\label{fig:full_generation_grid}
+\label{fig:potential_energy_density}
 \end{figure}
 
 \appendix
@@ -849,6 +926,140 @@ CNF & \textbf{0.705} & \textbf{39.72} & \textbf{0.445} \\
 Throughout the appendix, the \emph{score} of a density $p(x)$ means the gradient of its log density, $\nabla_x\log p(x)$.
 It points in the direction where the log probability increases most rapidly.
 For stochastic differential equations, $dW_t$ denotes a Brownian increment with mean zero and variance $dt$, so terms proportional to $dW_t$ create fluctuations of size $\sqrt{dt}$ while drift terms proportional to $dt$ create deterministic motion.
+
+\section{Checkpoint Evaluation Tables}
+
+Tables~\ref{tab:cnf-structural-base}--\ref{tab:cnf-force-hairpin} report the epoch-by-epoch CNF checkpoint diagnostics used to choose the main-text checkpoints.
+The structural tables use the aggregate pairwise-distance metrics from generated samples.
+The force tables use the 128-sample force and energy evaluation; score MSE and score cosine compare learned scores against analytic Brownian score targets, while potential MAE and correlation compare centered model potentials against the simulator potentials.
+
+\onecolumngrid
+
+\begin{table}[!htbp]
+\caption{\label{tab:cnf-structural-base}
+Structural performance across Base Rouse CNF checkpoints.
+Lower pairwise-distance energy and MMD indicate closer agreement between generated and training conformations.}
+\begin{ruledtabular}
+\begin{tabular}{cccc}
+Epoch & Loss & Pairwise E & Pairwise MMD \\
+\hline
+1 & 32.36 & 4.184 & 0.078 \\
+2 & 13.89 & 1.422 & 0.025 \\
+3 & 11.24 & 0.700 & 0.012 \\
+4 & 10.38 & 0.899 & 0.015 \\
+5 & 10.00 & 0.443 & 0.007 \\
+6 & 9.862 & 0.286 & 0.005 \\
+7 & 9.686 & 0.192 & 0.003 \\
+8 & 9.495 & 0.175 & 0.003 \\
+9 & 9.689 & 0.100 & 0.002 \\
+10 & 9.622 & 0.466 & 0.008 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{\label{tab:cnf-force-base}
+Force and energy performance across Base Rouse CNF checkpoints on 128 generated samples.
+Lower score MSE and potential MAE are better; higher score cosine and potential correlation are better.}
+\begin{ruledtabular}
+\begin{tabular}{ccccc}
+Epoch & Score MSE & Score cos. & Pot. MAE & Pot. corr. \\
+\hline
+2 & 9.564 & 0.883 & 7.020 & 0.624 \\
+3 & 3.962 & 0.941 & 6.213 & 0.556 \\
+4 & 2.021 & 0.962 & 6.321 & 0.673 \\
+5 & 1.270 & 0.976 & 6.448 & 0.618 \\
+6 & 1.097 & 0.982 & 6.305 & 0.636 \\
+7 & 0.898 & 0.984 & 6.549 & 0.478 \\
+8 & 0.636 & 0.989 & 6.641 & 0.524 \\
+9 & 0.789 & 0.987 & 6.725 & 0.458 \\
+10 & 0.393 & 0.993 & 6.584 & 0.575 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{\label{tab:cnf-structural-ring}
+Structural performance across Ring closure CNF checkpoints.}
+\begin{ruledtabular}
+\begin{tabular}{cccc}
+Epoch & Loss & Pairwise E & Pairwise MMD \\
+\hline
+1 & 81.44 & 20.59 & 0.244 \\
+2 & 27.87 & 13.99 & 0.177 \\
+3 & 17.36 & 17.28 & 0.215 \\
+4 & 32.97 & $1.17{\times}10^{5}$ & 0.235 \\
+5 & 22.86 & 60.43 & 0.095 \\
+6 & 14.21 & 4.137 & 0.066 \\
+7 & 9.861 & 3.798 & 0.062 \\
+8 & 8.793 & 7.587 & 0.104 \\
+9 & 7.399 & 4.516 & 0.069 \\
+10 & 7.056 & 5.221 & 0.074 \\
+11 & 6.732 & 2.388 & 0.047 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{\label{tab:cnf-force-ring}
+Force and energy performance across Ring closure CNF checkpoints on 128 generated samples.}
+\begin{ruledtabular}
+\begin{tabular}{ccccc}
+Epoch & Score MSE & Score cos. & Pot. MAE & Pot. corr. \\
+\hline
+2 & $9.68{\times}10^{9}$ & 0.023 & $6.46{\times}10^{4}$ & 0.278 \\
+3 & $1.42{\times}10^{10}$ & 0.010 & $1.12{\times}10^{5}$ & -0.272 \\
+4 & $3.57{\times}10^{10}$ & 0.049 & $2.40{\times}10^{10}$ & 0.563 \\
+5 & $5.57{\times}10^{9}$ & 0.022 & $1.78{\times}10^{7}$ & 0.252 \\
+6 & $4.10{\times}10^{9}$ & 0.050 & $1.56{\times}10^{6}$ & 0.380 \\
+7 & $2.71{\times}10^{9}$ & 0.058 & $2.69{\times}10^{5}$ & 0.302 \\
+8 & $5.42{\times}10^{9}$ & 0.069 & $6.74{\times}10^{4}$ & 0.354 \\
+9 & $3.46{\times}10^{9}$ & 0.117 & $4.48{\times}10^{4}$ & 0.422 \\
+10 & $4.04{\times}10^{9}$ & 0.064 & $3.96{\times}10^{4}$ & 0.373 \\
+11 & $2.82{\times}10^{9}$ & 0.100 & $3.14{\times}10^{4}$ & 0.320 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{\label{tab:cnf-structural-hairpin}
+Structural performance across Hairpin LJ CNF checkpoints.}
+\begin{ruledtabular}
+\begin{tabular}{cccc}
+Epoch & Loss & Pairwise E & Pairwise MMD \\
+\hline
+1 & 46.29 & 27.41 & 0.381 \\
+2 & 2.726 & 16.14 & 0.275 \\
+3 & -3.986 & 11.16 & 0.221 \\
+4 & -7.525 & 7.280 & 0.167 \\
+5 & -9.504 & 3.743 & 0.111 \\
+6 & -12.22 & 6.824 & 0.148 \\
+7 & -14.62 & 3.469 & 0.088 \\
+8 & -15.72 & 4.877 & 0.120 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{\label{tab:cnf-force-hairpin}
+Force and energy performance across Hairpin LJ CNF checkpoints on 128 generated samples.}
+\begin{ruledtabular}
+\begin{tabular}{ccccc}
+Epoch & Score MSE & Score cos. & Pot. MAE & Pot. corr. \\
+\hline
+2 & $3.98{\times}10^{13}$ & 0.040 & $3.03{\times}10^{6}$ & -0.069 \\
+3 & $1.89{\times}10^{13}$ & 0.036 & $1.69{\times}10^{6}$ & 0.031 \\
+4 & $1.06{\times}10^{13}$ & 0.093 & $1.21{\times}10^{6}$ & -0.021 \\
+5 & $1.61{\times}10^{13}$ & 0.059 & $1.41{\times}10^{6}$ & 0.165 \\
+6 & $1.93{\times}10^{13}$ & 0.048 & $1.60{\times}10^{6}$ & 0.042 \\
+7 & $2.45{\times}10^{13}$ & 0.050 & $2.00{\times}10^{6}$ & 0.179 \\
+8 & $2.22{\times}10^{13}$ & 0.073 & $1.98{\times}10^{6}$ & 0.256 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\clearpage
+\twocolumngrid
 
 \subsection{Boltzmann Score and Conservative Forces}
 
@@ -899,7 +1110,7 @@ Rearranging gives the force
 \end{equation}
 Thus any differentiable model of the equilibrium log density provides a conservative force estimate when multiplied by $k_B T$.
 The resulting force field is conservative because it derives from the scalar potential $-k_B T\log P(\vec{q})$.
-This statement motivates using a learned density model to drive Hamiltonian dynamics.
+This statement motivates using a learned density model to drive overdamped Brownian dynamics through the detailed-balance score relation.
 
 \subsection{Overdamped Brownian Score Relation}
 
@@ -1030,6 +1241,32 @@ Explicitly, the endpoints satisfy
 The uncentered Rouse potential is invariant to global translations, so the equilibrium density has a translation zero mode.
 The experiments remove this mode by centering every configuration before training and evaluation; the models therefore learn the internal conformational distribution rather than center-of-mass diffusion.
 
+The ring-closure experiment adds one more harmonic bond to the same Rouse score.
+Its dimensionless potential is
+\begin{equation}
+    U_{\mathrm{ring}}(x)
+    =
+    U_{\mathrm{bond}}(x)
+    +
+    \frac{k_\xi}{2D}
+    \|x_1-x_N\|^2.
+\end{equation}
+Only the two terminal beads receive new bonded score contributions:
+\begin{align}
+    s^{\mathrm{ring}}_1(x)
+    &=
+    \frac{k_\xi}{D}
+    (x_N-x_1),
+    \\
+    s^{\mathrm{ring}}_N(x)
+    &=
+    \frac{k_\xi}{D}
+    (x_1-x_N).
+\end{align}
+Equivalently, the Brownian drift contributions are $k_\xi(x_N-x_1)$ on bead $1$ and $k_\xi(x_1-x_N)$ on bead $N$.
+When ring bonding is enabled, the code treats the $(1,N)$ pair as bonded for nonbonded exclusions, so excluded volume does not also act on the closure spring pair.
+The ring-closure configuration additionally enables the same excluded-volume and centered-confinement terms used below, but leaves the optional ring Lennard-Jones contact disabled.
+
 The nonideal hairpin experiment adds pair potentials to the same score.
 For a pair $(i,j)$, write
 \begin{equation}
@@ -1073,7 +1310,7 @@ Differentiating gives the score contribution
     r_{ij}.
 \end{equation}
 This vector points away from bead $j$, so the term penalizes bead overlap.
-The hairpin run enables this term with the base defaults
+The ring-closure and hairpin runs enable this term with the base defaults
 \begin{equation}
     \begin{aligned}
         \epsilon_{\mathrm{EV}}
@@ -1097,7 +1334,7 @@ The hairpin run enables this term with the base defaults
         1.5.
     \end{aligned}
 \end{equation}
-and excludes bonded neighbors.
+and exclude bonded neighbors.
 
 The Lennard-Jones potential used for attractive hairpin contacts is
 \begin{equation}
@@ -1184,7 +1421,69 @@ with
         2.
     \end{aligned}
 \end{equation}
+The ring-closure and hairpin runs also enable centered confinement.
+This term uses the chain center of mass
+\begin{equation}
+    \bar{x}
+    =
+    \frac{1}{N}
+    \sum_{i=1}^{N}
+    x_i
+\end{equation}
+and the potential
+\begin{equation}
+    U_{\mathrm{conf}}(x)
+    =
+    c
+    \sum_{i=1}^{N}
+    \|x_i-\bar{x}\|^2.
+\end{equation}
+Because every bead position appears in $\bar{x}$, it is useful to rewrite the centered spread as
+\begin{equation}
+    \sum_{i=1}^{N}
+    \|x_i-\bar{x}\|^2
+    =
+    \sum_{i=1}^{N}
+    \|x_i\|^2
+    -
+    N\|\bar{x}\|^2.
+\end{equation}
+Taking the gradient with respect to bead $i$ gives
+\begin{equation}
+    \nabla_{x_i}U_{\mathrm{conf}}(x)
+    =
+    2c(x_i-\bar{x}),
+\end{equation}
+so the confinement score contribution is
+\begin{equation}
+    s^{\mathrm{conf}}_i(x)
+    =
+    -\nabla_{x_i}U_{\mathrm{conf}}(x)
+    =
+    -2c(x_i-\bar{x}).
+\end{equation}
+The term therefore pulls each bead weakly back toward the instantaneous chain center of mass.
+It does not pin the whole polymer to the origin, because translating every bead by the same vector leaves $x_i-\bar{x}$ unchanged.
+The ring-closure and hairpin configurations inherit
+\begin{equation}
+    c=0.02
+\end{equation}
+from the base Rouse configuration and set centered confinement to enabled.
+For the ring-closure system, the full equilibrium score is the sum of the bonded Rouse score, the terminal closure-bond score, all active excluded-volume pair scores, and the centered confinement score.
 For the hairpin system, the full equilibrium score is the sum of the bonded Rouse score, all active excluded-volume pair scores, the active hairpin LJ pair scores, and the centered confinement score.
+Generically, if the total dimensionless potential is $U(x)$, then the analytic equilibrium score is
+\begin{equation}
+    \nabla_x\log p_{\mathrm{eq}}(x)
+    =
+    -\nabla_x U(x),
+\end{equation}
+so learned model scores can be compared directly with the analytic force implied by the potential gradient.
+In the Brownian convention used here, the corresponding drift force is
+\begin{equation}
+    F(x)
+    =
+    -D\nabla_x U(x).
+\end{equation}
 This combined expression is the target produced by \texttt{polymer\_langevin\_score!}; multiplying it by $D$ gives the Brownian drift used in simulation.
 
 \subsection{Continuous Normalizing Flow Log Density}
