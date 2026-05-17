@@ -160,14 +160,11 @@ The raw trajectories may include center-of-mass diffusion, but model training ce
 
 \section{Time Conventions}
 
-We use three time variables with different meanings.
-In the Brownian dynamics simulator, $t$ represents physical simulation time.
-It indexes the stochastic trajectory that generates equilibrium snapshots.
-In the CNF, we use $\tau \in [0,1]$ as a model pseudotime: $\tau=0$ is the data distribution and $\tau=1$ is the standard normal base distribution.
-Likelihood evaluation integrates from $\tau=0$ to $\tau=1$, while sampling integrates back from $\tau=1$ to $\tau=0$.
-In the diffusion model, $t \in [0,1]$ represents noising time: $t=0$ gives clean data and $t=1$ gives approximately standard Gaussian noise.
-The reverse diffusion sampler starts at $t=1$ and integrates to a small positive time, currently $10^{-4}$, for numerical stability.
-These conventions match the implementation.
+In this work, we use two time variables with different meanings.
+For the Brownian dynamics simulator and all generated polymer trajectories, $t$ represents physical simulation time.
+For the CNF and the diffusion generative models, we use $\tau \in [0,1]$ as a model pseudotime: $\tau=0$ is the data distribution and $\tau=1$ is the standard normal base distribution.
+For the CNF, likelihood evaluation integrates from $\tau=0$ to $\tau=1$, while sampling integrates back from $\tau=1$ to $\tau=0$.
+For the diffusion model, the forward process noises data at $\tau=0$ towards Gaussian noise at $\tau=1$, while the reverse process denoises from $\tau=1$ to $\tau=0$.
 
 \section{Synthetic Systems}
 
@@ -638,7 +635,6 @@ CNF &
 \end{tabular}%
 }
 \end{table*}
-
 \section{Julia and SciML Implementation}
 
 We build the implementation in Julia and around the SciML ecosystem \cite{bezanson2017,rackauckas2017,rackauckas2020universal}.
@@ -842,16 +838,32 @@ One can then evolve an overdamped stochastic trajectory with
 This overdamped trajectory-inference loop matches the Brownian setting used in the current experiments.
 The current implementation does not yet execute this loop for atomistic proteins; instead, it validates the score-learning components on Brownian/Rouse systems where we know the target force field.
 
-\section{Current Scope}
+% \section{Current Scope}
 
-We should describe the current codebase as a Brownian-dynamics and polymer-equilibrium study.
-Protein dynamics remain a longer-term motivation, but the implemented system does not yet infer atomistic protein trajectories from static structural ensembles.
-The code supports a narrower practical claim: we can train equivariant CNF and diffusion models on centered equilibrium snapshots from Rouse-style Brownian simulations, sample them as generative models, and evaluate them against known equilibrium score fields.
+% The current project is scoped to focus on Brownian-dynamics and polymer-equilibrium analysis.
+% Protein dynamics remain a longer-term motivation, but the implemented system does not yet infer atomistic protein trajectories from static structural ensembles.
+% The code supports a narrower practical claim: we can train equivariant CNF and diffusion models on centered equilibrium snapshots from Rouse-style Brownian simulations, sample them as generative models, and evaluate them against known equilibrium score fields.
+
+\section{Evaluation}
+
+Both the CNF and diffusion models were trained on the ground-truth Rouse base, Rouse hairpin, and Rouse ring dataset described above.
+The CNF velocity field and the diffusion score field were parametrized/predicted by the same 3-layer EGNN architecture.
+Each EGNN layer across both models used 6-layer MLPs with 256 hidden units per layer for both edge and node updates.
+For each polymer dataset, the CNF was trained for 60 epochs with a batch size of 128 and the Adam optimizer with learning rate $2 \times 10^{-3}$. 
+The diffusion model was trained for 80 epochs with a batch size of 128 and the Adam optimizer with learning rate $5 \times 10^{-5}$. 
+
+Across all datasets, trained models were evaluated on their ability to generate samples and recover the ground-truth polymer score field.
+For sample generation, 1000 polymer configurations were generated from each model, and the distribution of pairwise particle distances was
+compared against the training data pairwise distance distribution using distributional metrics such as maximum mean discrepancy (MMD) and energy distance.
+For score field evaluation, 1000 samples were drawn from the training data, and for each sample, the learned score was compared against the known Brownian score target $F(x)/D$ using cosine similarity, mean squared error (MSE), and Pearson correlation coefficient $r^2$.
+We also compared the distributions of score norms and potential energies for generated samples against the training data to evaluate whether the models capture the overall scale of forces and energies in the system.
+
+Lastly, we used the trained CNF and diffusion models to generate short trajectories by integrating their learned score vector fields forward in physical Brownian time.
 
 \section{Results}
  
 %Pairwise distance distributional metrics table
-\begin{table}[ht]
+\begin{table}[htbp]
 \centering
 \begin{tabular}{lcc}
 \hline
@@ -880,7 +892,7 @@ Both learned models improve substantially over centered Gaussian samples, with t
 
 
 %insert image from figures/generations/full_generation_grid.png here
-\begin{figure}
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/generations/full_generation_grid.png}
 \caption{Representative generated and reference polymer conformations.
@@ -890,7 +902,7 @@ The grid provides a qualitative comparison of whether each learned model reprodu
 \end{figure}
 
 %Learned score vs. ground-truth score correlation table
-\begin{table}[ht]
+\begin{table}[htbp]
 \centering
 \begin{tabular}{lccc}
 \hline
@@ -914,7 +926,7 @@ Cosine similarity measures directional alignment, MSE measures absolute score er
 The CNF score is most accurate for the harmonic base Rouse chain, while both models degrade on the more constrained hairpin and ring systems.}
 \end{table}
 
-\begin{figure}
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
@@ -923,7 +935,7 @@ The panels compare CNF and diffusion score magnitudes on generated configuration
 \label{fig:score_norm_density}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
@@ -932,8 +944,17 @@ The panels compare the simulator energy evaluated on CNF and diffusion samples w
 \label{fig:potential_energy_density}
 \end{figure}
 
-\appendix
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/simulations/timestep_samples.png}
+\caption{Representative polymer trajectory rollouts at normalized times $t=0$ through $t=1$.
+Columns compare the simulator trajectory with trajectories generated by integrating the learned CNF and diffusion score fields, illustrating how closely each learned dynamics model preserves the qualitative conformational evolution of the reference system.}
+\label{fig:timestep_samples}
+\end{figure}
+
+\appendix
+\clearpage
 \section{Derivations}
 
 Throughout the appendix, the \emph{score} of a density $p(x)$ means the gradient of its log density, $\nabla_x\log p(x)$.
@@ -2571,6 +2592,7 @@ Substituting the VP coefficients gives
 The code recenters the state after each step so the sampler remains in the same centered coordinate subspace used during training.
 It also omits the final noise draw on the last step to reduce endpoint noise near $t=10^{-4}$.
 
+\clearpage
 \bibliographystyle{apsrev4-2}
 \bibliography{references}
 
