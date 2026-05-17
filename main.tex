@@ -12,8 +12,8 @@
 
 \title{Learning Equilibrium Polymer Distributions with Continuous Normalizing Flows and Diffusion Models}
 
-\author{Author Name}
-\affiliation{Affiliation}
+\author{Rachit Mukkamala, David Goh}
+\affiliation{Harvard-MIT Program in Health Sciences and Technology}
 
 \date{\today}
 
@@ -765,6 +765,82 @@ The current implementation does not yet execute this loop for atomistic proteins
 We should describe the current codebase as a Brownian-dynamics and polymer-equilibrium study.
 Protein dynamics remain a longer-term motivation, but the implemented system does not yet infer atomistic protein trajectories from static structural ensembles.
 The code supports a narrower practical claim: we can train equivariant CNF and diffusion models on centered equilibrium snapshots from Rouse-style Brownian simulations, sample them as generative models, and evaluate them against known equilibrium score fields.
+
+\section{Results}
+ 
+%Pairwise distance distributional metrics table
+\begin{table}[ht]
+\centering
+\begin{tabular}{lcc}
+\hline
+\textbf{Model} & \textbf{Energy} & \textbf{MMD} \\
+\hline
+\textbf{Base Rouse} & & \\
+Gaussian Null & 11.89 & 0.165 \\
+Diffusion & 0.218 & 0.004 \\
+CNF & \textbf{0.100} & \textbf{0.002} \\
+\hline
+\textbf{Hairpin} & & \\
+Gaussian Null & 48.10 & 0.511 \\
+Diffusion & 3.847 & 0.122 \\
+CNF & \textbf{2.388} & \textbf{0.047} \\
+\hline
+\textbf{Ring} & & \\
+Gaussian Null & 29.13 & 0.320 \\
+Diffusion & 3.868 & 0.058 \\
+CNF & \textbf{3.469} & \textbf{0.088} \\
+\hline
+\end{tabular}
+\caption{Placeholder Caption for pairwise distance distributional metrics table.}
+\end{table}
+
+
+%insert image from figures/generations/full_generation_grid.png here
+\begin{figure}
+\centering
+\includegraphics[width=\columnwidth]{figures/generations/full_generation_grid.png}
+\caption{Placeholder caption for generated sample grid.}
+\label{fig:full_generation_grid}
+\end{figure}
+
+%Learned score vs. ground-truth score correlation table
+\begin{table}[ht]
+\centering
+\begin{tabular}{lccc}
+\hline
+\textbf{Model} & \textbf{Cosine Sim} & \textbf{MSE} & \textbf{Pearson $r^2$} \\
+\hline
+\textbf{Base Rouse} & & & \\
+Diffusion & 0.633 & 14.14 & 0.401 \\
+CNF & \textbf{0.987} & \textbf{0.772} & \textbf{0.974} \\
+\hline
+\textbf{Hairpin} & & & \\
+Diffusion & 0.250 & \textbf{177.1} & 0.045 \\
+CNF & \textbf{0.512} & 180.8 & \textbf{0.228} \\
+\hline
+\textbf{Ring} & & & \\
+Diffusion & 0.372 & 57.81 & 0.109 \\
+CNF & \textbf{0.705} & \textbf{39.72} & \textbf{0.445} \\
+\hline
+\end{tabular}
+\caption{Placeholder caption for learned score vs. ground-truth score correlation table.}
+\end{table}
+
+\begin{figure}
+\centering
+\includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
+\includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
+\caption{Placeholder caption for score norm distributions on Rouse base polymers only.}
+\label{fig:full_generation_grid}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
+\includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
+\caption{Placeholder caption for potential energy distributions on Rouse base polymers only.}
+\label{fig:full_generation_grid}
+\end{figure}
 
 \appendix
 
