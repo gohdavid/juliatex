@@ -865,16 +865,11 @@ Cosine similarity measures directional alignment (higher is better), RMSE measur
 \label{tab:score-agreement}
 \end{table}
 
-Across all datasets, the CNF model achieved significantly higher cosine similarity and Pearson $r^2$ values compared to the diffusion model, indicating that the CNF's learned score field was much more closely aligned with the true Brownian score field than the diffusion model's score.
-Impressively, the CNF achieved a cosine similarity of 0.987 and a Pearson $r^2$ of 0.974 on the Base Rouse dataset, indicating near-perfect directional alignment and very strong linear correlation with the true score field.
-This strong result demonstrates that it is indeed possible for generative models to learn physically accurate score/force fields just by observing equilibrium samples and without any direct access to forces or dynamics during training.
-
-Agreement between model-predicted scores and ground-truth scores was highest for the base Rouse dataset, and performance significantly degraded on the hairpin and ring datasets.
-In the previous section, we observed that the models had more difficulty generating realistic samples from the hairpin and ring datasets.
-We hypothesize that the inability of the generative models to accurately capture the complex structural features of these datasets is related to their poorer performance in learning physically accurate score fields, as the score field is closely tied to the underlying equilibrium distribution.
-If the model does not accurately learn the probability distribution of equilibrium conformations, then its predicted score field $\nabla_x \log p_\theta(x)$ will likely also fail to match the true Brownian score field $F(x)/D$.
-The hairpin case is especially difficult because the attractive Lennard-Jones contacts and excluded-volume repulsion create steep, high-magnitude forces, producing sharper log-density features than the base Rouse chain.
-With finite simulation step sizes, rare close-contact configurations can also generate very large steric forces, which makes the corresponding score field harder to learn stably.
+Across all datasets, the CNF model achieved higher cosine similarity and Pearson $r^2$ values than the diffusion model, indicating better directional and linear agreement with the Brownian score target.
+The strongest score recovery occurs on the base Rouse dataset, where the target force is a smooth linear spring force.
+Agreement drops on the hairpin and ring datasets, where the score field contains nonlocal constraints and contact forces that are absent from the base chain.
+For the hairpin, the attractive Lennard-Jones contacts and excluded-volume repulsion have steep gradients near contact.
+These terms require learned score fields to represent sharper local variation and larger force magnitudes than in the base Rouse chain, which helps explain why the hairpin score metrics are worse.
 
 To further investigate the quality of the learned score fields, we also compared the distributions of score norms produced by the true Brownian score field and the model-predicted score fields.
 We evaluated the learned and true score norms on both training configurations and generated configurations to evaluate the physical self-consistency of each learned score field.
@@ -890,17 +885,10 @@ Black and blue compare physics and model score norms on training configurations,
 \label{fig:score_norm_density}
 \end{figure}
 
-In Figure 2, we see that for the CNF, the physics-calculated score norms overlap for both training and generated samples, and the model-predicted score norms closely match the physics score norms for both sets of configurations.
-This indicates that the CNF not only generates physically realistic samples but also learns a score field that has the correct overall scale of forces in the system, which is crucial for accurate trajectory inference.
-Alignment between all four of these distributions for the CNF suggests that it has succesfully learned a self-consistent representation of the equilibrium distribution and its associated score field, which is a promising result for the potential use of CNFs in trajectory inference tasks.
-
-In contrast, for the diffusion model, there is a large disparity in the physics-calculated score norms between training and generated samples.
-Additionally, the model-predicted score norms for the diffusion model are much smaller than the physics score norms for both training and generated samples, indicating that the diffusion model has failed to learn a score field with the correct scale of forces.
-If the only discrepancy was between training and generated samples, then this could be attributed to a distributional shift in the generated samples.
-However, the fact that the diffusion model's predicted score norms are much smaller than the physics score norms even on training samples suggests that the diffusion model is not accurately learning the true score field even in the region of configuration space where it has training data.
-This discrepancy illustrates a fundamental limitation of the diffusion model's score-based approach beyond just weaker sample generation/distributional alignment.
-Because the diffusion model directly learns a score field rather than computing a log probability and differentiating it, there is no guarantee that the learned score field will be conservative, which may contribute to the observed score norm discrepancies.
-Additionally, the low weighting of the score-matching loss at small time values in the diffusion training objective may have led to poor learning of the score field near the data distribution, which could explain why the diffusion model's predicted score norms are much smaller than the physics score norms even on training samples.
+In Figure 2, the CNF score-norm distributions are close to the physics score norms on both training and generated configurations.
+This indicates that, for the base Rouse system, the CNF recovers the overall scale of the Brownian score more accurately than the diffusion model.
+For the diffusion model, the predicted score norms are smaller than the physics score norms on both training and generated configurations, while generated configurations have larger physics score norms than the training data.
+This is an empirical mismatch between the learned score scale and the analytic Brownian target; these diagnostics do not identify a single cause for the mismatch.
 
 \begin{figure}[htbp]
 \centering
@@ -913,11 +901,11 @@ Additionally, the low weighting of the score-matching loss at small time values 
 We also compared the distributions of potential energies for generated samples from each model against the training data.
 As shown in Figure 3, the CNF-generated samples have a potential energy distribution that closely matches the training data,
 while the diffusion-generated samples have a potential energy distribution that is shifted towards higher energies compared to the training data.
-This further supports the conclusion that the CNF has successfully learned the physical dynamics of Rouse polymers, whereas the diffusion model is biased towards generating higher-energy, less physically realistic conformations.
+This shows that the CNF samples stay closer to the base Rouse equilibrium energy range, whereas the diffusion samples are shifted toward higher-energy conformations.
 
 \subsection*{Generation of Realistic Brownian Trajectories}
 
-Finally, we generated short trajectories by integrating the learned CNF and diffusion score fields forward in physical Brownian time, starting from a configuration randomly sampled from the training data.
+Finally, we generated trajectories by integrating the learned CNF and diffusion score fields forward in physical Brownian time, starting from a configuration randomly sampled from the training data.
 
 \begin{figure}[htbp]
 \centering
@@ -929,7 +917,7 @@ Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the sim
 
 Visually, the CNF-driven simulation rollout preserves the chain-like geometry more closely across time,
 while the diffusion-driven rollout becomes more compact, tangled, and "jagged" under the learned score field.
-Diffusion-driven trajectories at higher time values show extreme, unphysically large polymer bond distances, implying that diffusion-driven trajectories are devolving into unstable, high-energy, unrealistic conformations.
+Diffusion-driven trajectories at higher time values show very large polymer bond distances and high-energy configurations in these rollouts.
 
 \begin{figure}[htbp]
 \centering
@@ -942,21 +930,21 @@ Energy distribution for ground-truth Brownian trajectories is shown in gray, whi
 
 This observation is supported by the potential energy distributions for the generated trajectories shown in Figure 4.
 The potential energies for conformations generated by the CNF-driven trajectory simulations stay within the bounds of the training data energy distribution.
-In contrast, the potential energies for conformations generated by the diffusion-driven trajectory simulations are significantly higher than the training data energy distribution, indicating that the diffusion-driven trajectories are generating unphysically high-energy conformations that deviate from the true Brownian dynamics.
+In contrast, the potential energies for conformations generated by the diffusion-driven trajectory simulations are significantly higher than the training data energy distribution, showing that these rollouts leave the typical equilibrium-energy range.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/simulations/cnf_traj_pairwise_dist.jpeg}
 \includegraphics[width=\columnwidth]{figures/simulations/diffusion_traj_pairwise_dist.png}
 \caption{Pairwise distances for conformations generated by CNF-driven trajectory simulations (top) and diffusion-driven trajectory simulations (bottom).
-Pairwise distance distribution for ground-truth Brownian trajectories is shown in gray, while energy distribution for model-driven trajectories is shown in blue.}
+Pairwise distance distribution for ground-truth Brownian trajectories is shown in gray, while pairwise-distance distribution for model-driven trajectories is shown in blue.}
 \label{fig:traj_pairwise_distance_density}
 \end{figure}
 
 Although diffusion-driven trajectories show a significant deviation in potential energy and conformational shape from the training data,
 their pairwise distance distribution is consistent with the training data distribution.
-This suggests that the pairwise distance distribution is not a sufficient metric for evaluating the physical realism of generated trajectories, as it can remain consistent with the training data even when the generated conformations are unphysically high-energy and take on unrealistic geometries.
-In contrast, the potential energy distribution clearly reveals the physical implausibility of the diffusion-driven trajectories, while the CNF-driven trajectories maintain a potential energy distribution that closely matches the training data.
+This suggests that the pairwise distance distribution is not sufficient for evaluating generated trajectories, since it can remain close to the training distribution even when the generated conformations have high potential energy.
+In contrast, the potential energy distribution exposes this energy mismatch, while the CNF-driven trajectories maintain a potential energy distribution closer to the training data.
 
 \section{Discussion}
 
