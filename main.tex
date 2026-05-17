@@ -933,6 +933,31 @@ their pairwise distance distribution is consistent with the training data distri
 This suggests that the pairwise distance distribution is not a sufficient metric for evaluating the physical realism of generated trajectories, as it can remain consistent with the training data even when the generated conformations are unphysically high-energy and take on unrealistic geometries.
 In contrast, the potential energy distribution clearly reveals the physical implausibility of the diffusion-driven trajectories, while the CNF-driven trajectories maintain a potential energy distribution that closely matches the training data.
 
+\section{Discussion}
+
+Equilibrium structural ensembles carry recoverable force-field information, but matching the ensemble is not sufficient.
+The CNF reproduces pairwise-distance statistics more accurately than the diffusion model, especially for the base Rouse chain, and both models improve substantially over a Gaussian baseline.
+However, score recovery is a stricter test than sample quality.
+We recover scores that align well with the analytic target for the harmonic base system, but agreement drops when ring closure or nonlocal hairpin contacts shape the ensemble.
+This distinction matters for dynamics: a model can generate plausible conformations while producing gradients too noisy, incorrectly scaled, or locally misaligned to drive reliable trajectories.
+
+Our main limitation is that we study controlled two-dimensional polymer benchmarks, not atomistic proteins.
+We chose these systems for their analytic score targets and clear equilibrium-dynamics relationship, which let us separate density learning from force-field validation.
+Protein ensembles will introduce complications we do not address: incomplete sampling, experimental noise, hidden solvent degrees of freedom, metastable states, possible non-Markovian effects, and uncertainty in the effective diffusion tensor.
+Our trajectory rollouts are also short and rely on a simple overdamped assumption; they show that learned scores can drive a dynamics simulator but do not establish long-time kinetic accuracy or transition-rate recovery.
+
+Future work should make the score-learning problem more physically constrained and evaluate it through the dynamics it implies.
+Architecturally, this means enforcing relevant symmetries, stabilizing score magnitudes, and regularizing the learned energy landscape.
+Algorithmically, it means comparing likelihood training, denoising score matching, and hybrid objectives that penalize force errors when partial force labels or physics-based priors are available.
+For dynamics validation, we need to move beyond short rollouts and measure long-time stability, equilibrium preservation, and transition statistics.
+The broader goal is to progress from these synthetic systems toward three-dimensional coarse-grained molecules and eventually protein conformational ensembles, where learned equilibrium densities could provide useful effective force fields with quantified uncertainty.
+
+We conclude that equilibrium snapshots can contain enough information to recover meaningful score fields under favorable assumptions, and generative density models provide a practical way to extract that information.
+Force-field inference should ultimately be evaluated by the dynamics and forces a model implies, not only by the structures it produces.
+
+
+
+
 \appendix
 \clearpage
 
