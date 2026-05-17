@@ -577,64 +577,9 @@ while we take the diffusion score from the network output at a small time value 
 The evaluation scripts compare these scores with the known Brownian score target $F(x)/D$ and apply normalization corrections when the data normalizer runs.
 This benchmark goes beyond visual sample comparison: the model should generate plausible chain conformations and recover the local equilibrium score implied by the Brownian dynamics \cite{arts2023}.
 
-Table~\ref{tab:cnf-best-epoch} summarizes the best CNF checkpoint for each polymer system, using the lowest pairwise-distance energy as the selection criterion.
+We report the structural sample-quality metrics and force-score diagnostics in smaller Results tables rather than a single wide checkpoint summary.
 The Gaussian baseline samples centered independent noise and is therefore only a structural baseline; it does not define a learned force field for the force-score diagnostics.
-
-\begin{table*}
-\caption{\label{tab:cnf-best-epoch}
-Best CNF checkpoint performance compared with centered Gaussian samples.
-Within each system, $x$ energy and $x$ MMD are pairwise-distance distribution metrics.
-Score MSE and score cosine are evaluated on 128 generated samples.
-Score-norm energy and score-norm MMD compare the model score-norm distributions on generated and training samples at the selected checkpoint.}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccc ccccccc ccccccc}
-\hline\hline
-Model &
-\multicolumn{7}{c}{Base Rouse} &
-\multicolumn{7}{c}{Ring closure} &
-\multicolumn{7}{c}{Hairpin LJ} \\
-\cline{2-8}\cline{9-15}\cline{16-22}
-&
-Epoch &
-$x$ energy &
-$x$ MMD &
-Score MSE &
-Score cos. &
-Score-norm E &
-Score-norm MMD &
-Epoch &
-$x$ energy &
-$x$ MMD &
-Score MSE &
-Score cos. &
-Score-norm E &
-Score-norm MMD &
-Epoch &
-$x$ energy &
-$x$ MMD &
-Score MSE &
-Score cos. &
-Score-norm E &
-Score-norm MMD \\
-\hline
-Gaussian &
--- &
-11.89 & 0.165 & -- & -- & -- & -- &
--- &
-29.13 & 0.320 & -- & -- & -- & -- &
--- &
-48.10 & 0.511 & -- & -- & -- & -- \\
-CNF &
-9 &
-0.100 & 0.002 & 0.789 & 0.987 & 0.668 & 0.036 &
-11 &
-2.388 & 0.047 & $2.82{\times}10^{9}$ & 0.100 & 8.676 & 0.187 &
-7 &
-3.469 & 0.088 & $2.45{\times}10^{13}$ & 0.050 & 8.422 & 0.139 \\
-\hline\hline
-\end{tabular}%
-}
-\end{table*}
+The pairwise-distance metrics in Table~\ref{tab:pairwise-metrics} summarize generated-sample quality, while Table~\ref{tab:score-agreement} reports learned-score agreement with analytic Brownian targets.
 \section{Julia and SciML Implementation}
 
 We build the implementation in Julia around the SciML ecosystem \cite{bezanson2017,rackauckas2017,rackauckas2020universal}.
@@ -862,8 +807,8 @@ The generated trajectories were then compared against ground-truth Brownian traj
 
 Following training, we began by using the trained CNF and diffusion models to generate 1000 polymer configurations for each of the three datasets (Base Rouse, Hairpin, Ring).
 We then calculated the distribution of pairwise distances for the generated samples and compared it against the training data distribution using maximum mean discrepancy (MMD) and energy distance metrics. 
-As a null baseline, we also sampled 1000 configurations from a $\mathcal{N}(0,1)$ Gaussian distribution computed the same metrics against the training data pairwise distance distribution.
-The results are summarized in Table 1.
+As a null baseline, we also sampled 1000 configurations from a $\mathcal{N}(0,1)$ Gaussian distribution and computed the same metrics against the training data pairwise-distance distribution.
+The structural sample-quality results are summarized in Table~\ref{tab:pairwise-metrics}.
 
 %Pairwise distance distributional metrics table
 \begin{table}[htbp]
@@ -888,7 +833,8 @@ Diffusion & 3.868 & 0.058 \\
 CNF & \textbf{3.469} & \textbf{0.088} \\
 \hline
 \end{tabular}
-\caption{Pairwise-distance distribution metrics for generated samples from each model and polymer system.
+\caption{\label{tab:pairwise-metrics}
+Pairwise-distance distribution metrics for generated samples from each model and polymer system.
 Lower energy and MMD values indicate closer agreement between generated conformations and the training ensemble.
 Both learned models improve substantially over centered Gaussian samples, with the CNF giving the strongest structural match in these runs.}
 \end{table}
@@ -908,14 +854,12 @@ Each cell contains four centered configurations with beads colored by sequence p
 \label{fig:full_generation_grid}
 \end{figure}
 
-This performance gap between the CNF and diffusion models is reflected in the generated sample grid shown in Figure 1.
-where the CNF samples appear to more closely match the structural features of the training data compared to the diffusion samples.
+This performance gap between the CNF and diffusion models is reflected in the generated sample grid shown in Figure~\ref{fig:full_generation_grid}, where the CNF samples appear to more closely match the structural features of the training data compared to the diffusion samples.
 For the hairpin dataset, for instance, the CNF-generated samples show clearer hairpin-like structures, whereas the diffusion-generated samples have "spiky", jagged conformations that do not resemble the training data.
 
 \subsection*{Accuracy of Learned Score Fields}
 
-
-
+Table~\ref{tab:score-agreement} summarizes score-field agreement with the analytic Brownian target across the three polymer systems.
 
 %Learned score vs. ground-truth score correlation table
 \begin{table}[htbp]
@@ -937,7 +881,8 @@ Diffusion & 0.372 & 57.81 & 0.109 \\
 CNF & \textbf{0.705} & \textbf{39.72} & \textbf{0.445} \\
 \hline
 \end{tabular}
-\caption{Agreement between learned model scores and analytic Brownian score targets.
+\caption{\label{tab:score-agreement}
+Agreement between learned model scores and analytic Brownian score targets.
 Cosine similarity measures directional alignment, MSE measures absolute score error, and Pearson $r^2$ measures linear agreement across score components.
 The CNF score is most accurate for the harmonic base Rouse chain, while both models degrade on the more constrained hairpin and ring systems.}
 \end{table}
