@@ -573,7 +573,7 @@ We evaluate both sample-level statistics and score-field diagnostics.
 For sample quality, we compare average pairwise distances between generated and training configurations.
 
 The Brownian dynamics model gives analytic force targets for all Rouse systems.
-We obtain the CNF score by differentiating the learned log likelihood,
+We obtain the CNF score by differentiating the learned log likelihood:
 \begin{equation}
     \nabla_x \log p_\theta(x),
 \end{equation}
@@ -581,12 +581,9 @@ For denoising diffusion diagnostics, we evaluate the learned score on centered c
 \begin{equation}
     t_{\mathrm{eval}} = 10^{-4}.
 \end{equation}
-This is the same terminal diffusion time used by the reverse sampler.
-The network output is already scaled as a score because the denoising target is $-\epsilon/\sigma(t)$; we do not multiply it by $\sigma(t)$ before comparison.
-For the VP schedule used here, $\sigma(t_{\mathrm{eval}})\approx 3.2\times 10^{-3}$.
-Strictly, the denoising diffusion model provides $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$, the score of the slightly noised VP marginal, not the exact data score $\nabla_x\log p_0(x)$.
-We compare it to $F(x)/D$ as a small-time approximation and avoid $t=0$ because the conditional VP score target diverges as $\sigma(t)\to0$.
-Together with the CNF score, this denoising diffusion score is compared against the known Brownian target $F(x)/D$ \cite{arts2023}.
+This is the final diffusion time used by the reverse sampler.
+Because the network is trained with the target $-\epsilon/\sigma(t)$, its output is already in score units; we do not apply an extra $\sigma(t)$ rescaling.
+We treat this small-time score as an approximation to the data score and compare it, together with the CNF score, against the known Brownian target $F(x)/D$ \cite{arts2023}.
 This benchmark is stricter than visual or distributional sample comparison: the model must recover the local equilibrium score, not only generate plausible conformations.
 
 The Gaussian baseline samples centered independent noise and serves only as a structural reference; it does not define a learned force field.
@@ -604,7 +601,7 @@ We represent
     dX_t = F(X_t)\,dt + \sqrt{2D}\,dW_t
 \end{equation}
 as an \texttt{SDEProblem} whose drift calls the same polymer force routine used for score targets.
-We solve with \texttt{StochasticDiffEq}, choosing among Euler-Maruyama, Euler-Heun, RKMil, SOSRA, and SOSRA2 via YAML configuration.
+We solve the SDE using \texttt{SOSRA2} from \texttt{StochasticDiffEq}.
 Saved trajectories are loaded through HDF5, separating simulation from model training while keeping both stages in Julia.
 
 \subsection*{CNF Likelihoods as SciML ODE Problems}
@@ -635,7 +632,7 @@ The ODE right-hand side returns
     \end{bmatrix}.
 \end{equation}
 The same problem definition runs forward for likelihood evaluation and backward for sampling.
-We use adaptive \texttt{Tsit5} (with \texttt{RK4} as an alternative) and train with \texttt{InterpolatingAdjoint(autojacvec=ZygoteVJP())} so that gradients propagate through the ODE solve.
+We use adaptive \texttt{Tsit5} and train with \texttt{InterpolatingAdjoint(autojacvec=ZygoteVJP())} so that gradients propagate through the ODE solve.
 This keeps the generative model close to its mathematical definition: the likelihood model is an ODE with a structured state, a vector field, a trace estimator, and a SciML adjoint.
 
 \subsection*{Hutchinson JVP Trace Estimator}
@@ -785,7 +782,7 @@ We do not yet apply it to atomistic proteins; we validate the score-learning com
 We trained CNF and denoising diffusion models on the base Rouse, hairpin, and ring datasets.
 Both models use a 3-layer EGNN architecture with 6-layer MLPs of 256 hidden units for edge and node updates.
 We trained the CNF for 60 epochs (batch size 128, Adam, learning rate $2 \times 10^{-3}$) and the denoising diffusion model for 80 epochs (batch size 128, Adam, learning rate $5 \times 10^{-5}$).
-For the reported checkpoints, the monitored training losses for both model classes had plateaued by the end of training, so the comparison is not based on an obviously unconverged denoising diffusion run.
+For the reported checkpoints, the monitored training losses for both model classes had plateaued by the end of training, indicating convergence under their respective training objectives.
 
 Across all datasets, we evaluate whether the trained models can generate samples and recover the ground-truth polymer score field.
 For sample generation, we draw 1000 polymer configurations from each model, then compare the generated and training pairwise-distance distributions using maximum mean discrepancy (MMD) and energy distance.
@@ -961,28 +958,24 @@ In contrast, the potential energy distribution exposes this energy mismatch, whi
 
 \section{Discussion}
 
-Equilibrium structural ensembles can determine recoverable force fields, but matching the ensemble is not sufficient.
-The CNF reproduces pairwise-distance statistics more accurately than the denoising diffusion model, especially for the base Rouse chain, and both models improve substantially over a Gaussian baseline.
-However, score recovery is a stricter test than sample quality.
-On this stricter test, the CNF also outperforms the denoising diffusion model in directional alignment and linear agreement across all three systems.
-We recover scores that align well with the analytic target for the harmonic base system, but agreement drops for both models when ring closure or nonlocal hairpin contacts shape the ensemble.
-This distinction matters for dynamics: a model can generate plausible conformations while producing gradients too noisy, incorrectly scaled, or locally misaligned to drive reliable trajectories.
-We do not interpret the denoising diffusion gap as evidence that denoising diffusion models cannot work in this setting.
-The reported denoising diffusion checkpoints had stabilized training losses, but additional tuning of the diffusion schedule, score-evaluation time, or optimization settings could still change the quantitative comparison.
+These experiments show that matching an equilibrium ensemble is easier than recovering the force field implied by that ensemble.
+Both learned models improve strongly over a Gaussian baseline, and the CNF gives the best pairwise-distance metrics across the three Rouse systems.
+The stricter score comparison separates the models more clearly: the CNF has higher directional alignment and linear agreement with the analytic Brownian score target, especially for the base harmonic chain.
+Both models degrade on the ring and hairpin systems, where constraints and steep contact forces make the score field less smooth.
 
-Our main limitation is that we study controlled two-dimensional polymer benchmarks, not atomistic proteins.
-An atomistic molecular-dynamics dataset would be a natural next step, but we chose Brownian Rouse systems first because they are faster to generate, easier to iterate on in Julia, and have analytic score targets.
-This lets us separate the basic density-to-force question from the additional modeling choices required for proteins.
-Protein conformational ensembles would require more careful treatment of sampling coverage, experimental noise, solvent and coarse-graining effects, metastability, and the effective dynamical model.
-Our model-based simulations rely on a simple overdamped assumption; they show that scores obtained from trained generative models can drive Brownian dynamics simulations but do not establish long-time kinetic accuracy or transition-rate recovery.
+The model-based Brownian simulations highlight why score quality matters.
+Pairwise distances can remain close to the training distribution even when simulated conformations move to higher analytic Rouse-chain energies.
+Energy and score diagnostics therefore provide a stronger test than visual sample quality alone.
+We do not take the denoising diffusion results as a negative result for denoising diffusion models in general; the reported checkpoints had plateaued training losses, but schedule choices, score-evaluation time, and optimization details could still affect the comparison.
 
-The immediate next step is to couple the learned score to richer dynamical equations.
-In overdamped settings, the score defines the drift of Langevin dynamics; with momenta, it can provide the conservative force term in Hamiltonian or inertial Langevin equations.
-This would let us evaluate learned densities through long-time stability, equilibrium preservation, relaxation behavior, and transition statistics rather than through static structure alone.
-The broader progression is to move from these synthetic systems to three-dimensional coarse-grained proteins, and then to atomistic protein systems where solvent, diffusion, and force-field uncertainty must be handled explicitly.
+The main limitation is that these are controlled two-dimensional Brownian polymer systems, not proteins.
+We chose them because they are fast to simulate in Julia and provide analytic force targets, letting us test the density-to-force question directly before adding the complications of molecular data.
+Moving to proteins will require decisions about coarse graining, solvent, sampling coverage, experimental noise, metastability, and the effective dynamical model.
 
-We conclude that equilibrium snapshots can contain enough information to recover meaningful score fields under favorable assumptions, and generative density models provide a practical way to extract that information.
-Force-field inference should ultimately be evaluated by the dynamics and forces a model implies, not only by the structures it produces.
+A natural next step is to use the learned score inside richer dynamics.
+Hamiltonian dynamics is deterministic position-momentum dynamics generated by an energy function.
+Inertial Langevin dynamics also evolves positions and momenta, but adds friction and thermal noise; overdamped Brownian dynamics removes momenta and keeps only coordinate drift plus noise.
+Testing learned scores in these dynamical settings, first for three-dimensional coarse-grained molecules and then for atomistic proteins, would evaluate whether learned equilibrium densities can support stable and physically meaningful motion.
 
 \appendix
 \clearpage
