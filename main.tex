@@ -758,16 +758,10 @@ We trained CNF and diffusion models on the base Rouse, hairpin, and ring dataset
 Both models use a 3-layer EGNN architecture with 6-layer MLPs of 256 hidden units for edge and node updates.
 We trained the CNF for 60 epochs (batch size 128, Adam, learning rate $2 \times 10^{-3}$) and the diffusion model for 80 epochs (batch size 128, Adam, learning rate $5 \times 10^{-5}$).
 
-<<<<<<< HEAD
-For sample quality, we draw 1000 configurations from each model and compare pairwise-distance distributions against training data using maximum mean discrepancy (MMD) and energy distance.
-For score-field accuracy, we evaluate 1000 training configurations and compare each learned score against the analytic target $F(x)/D$ using cosine similarity, MSE, and Pearson $r^2$.
-We also compare score-norm and potential-energy distributions between generated and training samples.
-=======
 Across all datasets, we evaluate whether the trained models can generate samples and recover the ground-truth polymer score field.
 For sample generation, we draw 1000 polymer configurations from each model, then compare the generated and training pairwise-distance distributions using maximum mean discrepancy (MMD) and energy distance.
 For score-field evaluation, we draw 1000 samples from the training data and compare each learned score against the known Brownian score target $F(x)/D$ using cosine similarity, root mean squared error (RMSE), and Pearson correlation coefficient $r^2$.
 We also compare the distributions of score norms and potential energies for generated samples against the training data to evaluate whether the models capture the overall scale of forces and energies in the system.
->>>>>>> ac4e5f4 (completed results section)
 
 Finally, we generate short trajectories by using learned scores as the drift in an overdamped Langevin SDE (2000 steps, $dt = 5 \times 10^{-4}$, initialized from a random training configuration) and compare against ground-truth Brownian trajectories.
 
@@ -802,15 +796,8 @@ Diffusion & 3.868 & 0.058 \\
 CNF & \textbf{3.469} & \textbf{0.088} \\
 \hline
 \end{tabular}
-<<<<<<< HEAD
-\caption{\label{tab:pairwise-metrics}
-Pairwise-distance distribution metrics for generated samples from each model and polymer system.
-Lower energy and MMD values indicate closer agreement between generated conformations and the training ensemble.
-Both learned models improve substantially over centered Gaussian samples, with the CNF giving the strongest structural match in these runs.}
-=======
 \caption{Pairwise-distance distribution metrics for generated samples from each model and polymer system.
 Lower energy and MMD values indicate closer agreement between generated conformations and the training ensemble.}
->>>>>>> ac4e5f4 (completed results section)
 \end{table}
 
 Both learned models substantially outperform the Gaussian baseline, and the CNF achieves lower MMD and energy distance than the diffusion model across all three datasets.
