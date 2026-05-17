@@ -951,147 +951,12 @@ The CNF rollout preserves the chain-like geometry more closely across time, whil
 
 \appendix
 \clearpage
-\section{Derivations}
 
 Throughout the appendix, the \emph{score} of a density $p(x)$ means the gradient of its log density, $\nabla_x\log p(x)$.
 It points in the direction where the log probability increases most rapidly.
 For stochastic differential equations, $dW_t$ denotes a Brownian increment with mean zero and variance $dt$, so terms proportional to $dW_t$ create fluctuations of size $\sqrt{dt}$ while drift terms proportional to $dt$ create deterministic motion.
 
-\section{Checkpoint Evaluation Tables}
-
-Tables~\ref{tab:cnf-structural-base}--\ref{tab:cnf-force-hairpin} report the epoch-by-epoch CNF checkpoint diagnostics used to choose the main-text checkpoints.
-The structural tables use the aggregate pairwise-distance metrics from generated samples.
-The force tables use the 128-sample force and energy evaluation; score MSE and score cosine compare learned scores against analytic Brownian score targets, while potential MAE and correlation compare centered model potentials against the simulator potentials.
-
-\onecolumngrid
-
-\begin{table}[!htbp]
-\caption{\label{tab:cnf-structural-base}
-Structural performance across Base Rouse CNF checkpoints.
-Lower pairwise-distance energy and MMD indicate closer agreement between generated and training conformations.}
-\begin{ruledtabular}
-\begin{tabular}{cccc}
-Epoch & Loss & Pairwise E & Pairwise MMD \\
-\hline
-1 & 32.36 & 4.184 & 0.078 \\
-2 & 13.89 & 1.422 & 0.025 \\
-3 & 11.24 & 0.700 & 0.012 \\
-4 & 10.38 & 0.899 & 0.015 \\
-5 & 10.00 & 0.443 & 0.007 \\
-6 & 9.862 & 0.286 & 0.005 \\
-7 & 9.686 & 0.192 & 0.003 \\
-8 & 9.495 & 0.175 & 0.003 \\
-9 & 9.689 & 0.100 & 0.002 \\
-10 & 9.622 & 0.466 & 0.008 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-\begin{table}[!htbp]
-\caption{\label{tab:cnf-force-base}
-Force and energy performance across Base Rouse CNF checkpoints on 128 generated samples.
-Lower score MSE and potential MAE are better; higher score cosine and potential correlation are better.}
-\begin{ruledtabular}
-\begin{tabular}{ccccc}
-Epoch & Score MSE & Score cos. & Pot. MAE & Pot. corr. \\
-\hline
-2 & 9.564 & 0.883 & 7.020 & 0.624 \\
-3 & 3.962 & 0.941 & 6.213 & 0.556 \\
-4 & 2.021 & 0.962 & 6.321 & 0.673 \\
-5 & 1.270 & 0.976 & 6.448 & 0.618 \\
-6 & 1.097 & 0.982 & 6.305 & 0.636 \\
-7 & 0.898 & 0.984 & 6.549 & 0.478 \\
-8 & 0.636 & 0.989 & 6.641 & 0.524 \\
-9 & 0.789 & 0.987 & 6.725 & 0.458 \\
-10 & 0.393 & 0.993 & 6.584 & 0.575 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-\begin{table}[!htbp]
-\caption{\label{tab:cnf-structural-ring}
-Structural performance across Ring closure CNF checkpoints.}
-\begin{ruledtabular}
-\begin{tabular}{cccc}
-Epoch & Loss & Pairwise E & Pairwise MMD \\
-\hline
-1 & 81.44 & 20.59 & 0.244 \\
-2 & 27.87 & 13.99 & 0.177 \\
-3 & 17.36 & 17.28 & 0.215 \\
-4 & 32.97 & $1.17{\times}10^{5}$ & 0.235 \\
-5 & 22.86 & 60.43 & 0.095 \\
-6 & 14.21 & 4.137 & 0.066 \\
-7 & 9.861 & 3.798 & 0.062 \\
-8 & 8.793 & 7.587 & 0.104 \\
-9 & 7.399 & 4.516 & 0.069 \\
-10 & 7.056 & 5.221 & 0.074 \\
-11 & 6.732 & 2.388 & 0.047 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-\begin{table}[!htbp]
-\caption{\label{tab:cnf-force-ring}
-Force and energy performance across Ring closure CNF checkpoints on 128 generated samples.}
-\begin{ruledtabular}
-\begin{tabular}{ccccc}
-Epoch & Score MSE & Score cos. & Pot. MAE & Pot. corr. \\
-\hline
-2 & $9.68{\times}10^{9}$ & 0.023 & $6.46{\times}10^{4}$ & 0.278 \\
-3 & $1.42{\times}10^{10}$ & 0.010 & $1.12{\times}10^{5}$ & -0.272 \\
-4 & $3.57{\times}10^{10}$ & 0.049 & $2.40{\times}10^{10}$ & 0.563 \\
-5 & $5.57{\times}10^{9}$ & 0.022 & $1.78{\times}10^{7}$ & 0.252 \\
-6 & $4.10{\times}10^{9}$ & 0.050 & $1.56{\times}10^{6}$ & 0.380 \\
-7 & $2.71{\times}10^{9}$ & 0.058 & $2.69{\times}10^{5}$ & 0.302 \\
-8 & $5.42{\times}10^{9}$ & 0.069 & $6.74{\times}10^{4}$ & 0.354 \\
-9 & $3.46{\times}10^{9}$ & 0.117 & $4.48{\times}10^{4}$ & 0.422 \\
-10 & $4.04{\times}10^{9}$ & 0.064 & $3.96{\times}10^{4}$ & 0.373 \\
-11 & $2.82{\times}10^{9}$ & 0.100 & $3.14{\times}10^{4}$ & 0.320 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-\begin{table}[!htbp]
-\caption{\label{tab:cnf-structural-hairpin}
-Structural performance across Hairpin LJ CNF checkpoints.}
-\begin{ruledtabular}
-\begin{tabular}{cccc}
-Epoch & Loss & Pairwise E & Pairwise MMD \\
-\hline
-1 & 46.29 & 27.41 & 0.381 \\
-2 & 2.726 & 16.14 & 0.275 \\
-3 & -3.986 & 11.16 & 0.221 \\
-4 & -7.525 & 7.280 & 0.167 \\
-5 & -9.504 & 3.743 & 0.111 \\
-6 & -12.22 & 6.824 & 0.148 \\
-7 & -14.62 & 3.469 & 0.088 \\
-8 & -15.72 & 4.877 & 0.120 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-\begin{table}[!htbp]
-\caption{\label{tab:cnf-force-hairpin}
-Force and energy performance across Hairpin LJ CNF checkpoints on 128 generated samples.}
-\begin{ruledtabular}
-\begin{tabular}{ccccc}
-Epoch & Score MSE & Score cos. & Pot. MAE & Pot. corr. \\
-\hline
-2 & $3.98{\times}10^{13}$ & 0.040 & $3.03{\times}10^{6}$ & -0.069 \\
-3 & $1.89{\times}10^{13}$ & 0.036 & $1.69{\times}10^{6}$ & 0.031 \\
-4 & $1.06{\times}10^{13}$ & 0.093 & $1.21{\times}10^{6}$ & -0.021 \\
-5 & $1.61{\times}10^{13}$ & 0.059 & $1.41{\times}10^{6}$ & 0.165 \\
-6 & $1.93{\times}10^{13}$ & 0.048 & $1.60{\times}10^{6}$ & 0.042 \\
-7 & $2.45{\times}10^{13}$ & 0.050 & $2.00{\times}10^{6}$ & 0.179 \\
-8 & $2.22{\times}10^{13}$ & 0.073 & $1.98{\times}10^{6}$ & 0.256 \\
-\end{tabular}
-\end{ruledtabular}
-\end{table}
-
-\clearpage
-\twocolumngrid
-
-\subsection{Boltzmann Score and Conservative Forces}
+\section{Boltzmann Score and Conservative Forces}
 
 At equilibrium, an atomistic configuration $\vec{q}$ with potential energy $V(\vec{q})$ follows the Boltzmann density
 \begin{equation}
@@ -1142,7 +1007,7 @@ Thus any differentiable model of the equilibrium log density provides a conserva
 The resulting force field is conservative because it derives from the scalar potential $-k_B T\log P(\vec{q})$.
 This statement motivates using a learned density model to drive overdamped Brownian dynamics through the detailed-balance score relation.
 
-\subsection{Overdamped Brownian Score Relation}
+\section{Overdamped Brownian Score Relation}
 
 Our Brownian systems follow the Itô SDE
 \begin{equation}
@@ -1196,7 +1061,7 @@ Thus the equilibrium score target for the Brownian simulations is
 \end{equation}
 For the base Rouse experiments, $D=0.25$, so the score target becomes $4F(x)$.
 
-\subsection{Rouse-Chain Score}
+\section{Rouse-Chain Score}
 
 For the base Rouse chain, the dimensionless equilibrium potential is
 \begin{equation}
@@ -1516,7 +1381,7 @@ In the Brownian convention used here, the corresponding drift force is
 \end{equation}
 This combined expression is the target produced by \texttt{polymer\_langevin\_score!}; multiplying it by $D$ gives the Brownian drift used in simulation.
 
-\subsection{Continuous Normalizing Flow Log Density}
+\section{Continuous Normalizing Flow Log Density}
 
 The CNF defines an invertible flow by the ODE \cite{chen2018,grathwohl2018}
 \begin{equation}
@@ -1704,7 +1569,7 @@ and evaluates
     \end{aligned}
 \end{equation}
 
-\subsection{Hutchinson Trace Estimator}
+\section{Hutchinson Trace Estimator}
 
 Let $A$ denote the Jacobian matrix $\partial f_\theta/\partial x$.
 The CNF log-density equation needs the divergence of the vector field,
@@ -1830,7 +1695,7 @@ analytically for the EGNN, then form
 where $i$ indexes beads and $k$ indexes spatial coordinates.
 During training, the loss differentiates through this stochastic trace estimate with respect to the network parameters.
 
-\subsection{Full EGNN JVP Recursion}
+\section{Full EGNN JVP Recursion}
 
 We write the analytic JVP implemented by \texttt{\_egnn\_velocity\_jvp}.
 At layer $\ell$, the EGNN stores node features $h_i^\ell$ and coordinate state $x_i$.
@@ -1991,7 +1856,7 @@ After $L$ layers, we return
 \end{equation}
 This recursion gives the full analytic JVP that the \texttt{hutchinson\_jvp} trace mode uses.
 
-\subsection{Variance-Preserving Diffusion Score Target}
+\section{Variance-Preserving Diffusion Score Target}
 
 DDPM defines a discrete noising Markov chain \cite{sohldickstein2015,ho2020}
 \begin{equation}
@@ -2304,7 +2169,7 @@ The training objective weights the squared score-matching error by $\sigma^2(t)$
     \end{aligned}
 \end{equation}
 
-\subsection{Fokker-Planck Time Reversal}
+\section{Fokker-Planck Time Reversal}
 
 The score target above gives the quantity that the reverse-time sampler needs.
 To see why the score appears in the reverse SDE, start from a general forward diffusion \cite{anderson1982,song2021}
@@ -2496,7 +2361,7 @@ With this notation, the equivalent reverse-time SDE in the original time variabl
 \end{equation}
 The reverse VP sampler below substitutes the VP drift, diffusion coefficient, and learned score into this equation \cite{song2021}.
 
-\subsection{Reverse-Time VP Sampler}
+\section{Reverse-Time VP Sampler}
 
 The Fokker-Planck time-reversal derivation above applies to the VP forward diffusion
 \begin{equation}
