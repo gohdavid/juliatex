@@ -778,6 +778,7 @@ We do not yet apply it to atomistic proteins; we validate the score-learning com
 We trained CNF and diffusion models on the base Rouse, hairpin, and ring datasets.
 Both models use a 3-layer EGNN architecture with 6-layer MLPs of 256 hidden units for edge and node updates.
 We trained the CNF for 60 epochs (batch size 128, Adam, learning rate $2 \times 10^{-3}$) and the diffusion model for 80 epochs (batch size 128, Adam, learning rate $5 \times 10^{-5}$).
+For the reported checkpoints, the monitored training losses for both model classes had plateaued by the end of training, so the comparison is not based on an obviously unconverged diffusion run.
 
 Across all datasets, we evaluate whether the trained models can generate samples and recover the ground-truth polymer score field.
 For sample generation, we draw 1000 polymer configurations from each model, then compare the generated and training pairwise-distance distributions using maximum mean discrepancy (MMD) and energy distance.
@@ -921,7 +922,7 @@ Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the ref
 
 Visually, the CNF score-driven simulation preserves the chain-like geometry more closely across time,
 while the diffusion score-driven simulation becomes more compact, tangled, and "jagged" under the learned score field.
-Diffusion score-driven simulations at higher time values show very large polymer bond distances and high-energy configurations.
+For diffusion score-driven simulations, evaluating the learned score at larger diffusion-time values can produce high-energy configurations, suggesting that the score-evaluation time strongly affects simulation stability.
 
 \begin{figure}[htbp]
 \centering
@@ -959,6 +960,8 @@ However, score recovery is a stricter test than sample quality.
 On this stricter test, the CNF also outperforms the diffusion model in directional alignment and linear agreement across all three systems.
 We recover scores that align well with the analytic target for the harmonic base system, but agreement drops for both models when ring closure or nonlocal hairpin contacts shape the ensemble.
 This distinction matters for dynamics: a model can generate plausible conformations while producing gradients too noisy, incorrectly scaled, or locally misaligned to drive reliable trajectories.
+We do not interpret the diffusion gap as evidence that diffusion models cannot work in this setting.
+The reported diffusion checkpoints had stabilized training losses, but additional tuning of the diffusion schedule, score-evaluation time, or optimization settings could still change the quantitative comparison.
 
 Our main limitation is that we study controlled two-dimensional polymer benchmarks, not atomistic proteins.
 An atomistic molecular-dynamics dataset would be a natural next step, but we chose Brownian Rouse systems first because they are faster to generate, easier to iterate on in Julia, and have analytic score targets.
