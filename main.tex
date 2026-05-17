@@ -971,11 +971,10 @@ This lets us separate the basic density-to-force question from the additional mo
 Protein conformational ensembles would require more careful treatment of sampling coverage, experimental noise, solvent and coarse-graining effects, metastability, and the effective dynamical model.
 Our trajectory rollouts rely on a simple overdamped assumption; they show that learned scores can drive Brownian dynamics rollouts but do not establish long-time kinetic accuracy or transition-rate recovery.
 
-Future work should use the available physical structure more directly and evaluate learned densities through the dynamics they imply.
-The present models already include geometric inductive bias through EGNN-style coordinate updates, and the Rouse systems provide analytic force targets.
-A natural next step is therefore to compare likelihood training, denoising score matching, and hybrid objectives that use force errors as supervision or calibration when such targets are available.
-For dynamics validation, we need to move beyond representative rollouts and measure long-time stability, equilibrium preservation, and transition statistics over relaxation-time scales.
-The broader goal is to progress from these synthetic systems toward three-dimensional coarse-grained molecules and eventually protein conformational ensembles, where learned equilibrium densities could provide useful effective force fields with quantified uncertainty.
+The immediate next step is to couple the learned score to richer dynamical equations.
+In overdamped settings, the score defines the drift of Langevin dynamics; with momenta, it can provide the conservative force term in Hamiltonian or inertial Langevin equations.
+This would let us evaluate learned densities through long-time stability, equilibrium preservation, relaxation behavior, and transition statistics rather than through static structure alone.
+The broader progression is to move from these synthetic systems to three-dimensional coarse-grained proteins, and then to atomistic protein systems where solvent, diffusion, and force-field uncertainty must be handled explicitly.
 
 We conclude that equilibrium snapshots can contain enough information to recover meaningful score fields under favorable assumptions, and generative density models provide a practical way to extract that information.
 Force-field inference should ultimately be evaluated by the dynamics and forces a model implies, not only by the structures it produces.
