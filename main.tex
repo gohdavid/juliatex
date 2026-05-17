@@ -516,7 +516,7 @@ where
 We center both $x_0$ and the sampled noise so the diffusion process stays in the centered subspace used for training.
 For numerical stability, we clamp training times below $10^{-5}$ and floor $\sigma(t)$ at the corresponding minimum positive value before forming the score target.
 
-The score network $s_\theta(x_t,t)$ estimates
+For each noised training pair $(x_0,x_t)$, the denoising target is the conditional score
 \begin{equation}
     \nabla_{x_t}\log p_{0t}(x_t|x_0)
     =
@@ -538,7 +538,8 @@ We minimize the weighted denoising score-matching objective \cite{ho2020,song202
 \end{equation}
 
 The diffusion score model uses the same EGNN-style architecture with learned node embeddings, sequence-distance and radial pair features, and pairwise coordinate updates.
-We center the output and interpret it as $\nabla_x \log p_t(x)$.
+Although the per-sample denoising target is conditional, the regression optimum is the marginal VP score $\nabla_x \log p_t(x)$.
+We center the network output and interpret it as this marginal score.
 
 Sampling follows the reverse-time VP SDE \cite{song2021}.
 For the linear schedule, the reverse coefficients are
@@ -578,8 +579,16 @@ We obtain the CNF score by differentiating the learned log likelihood,
 \begin{equation}
     \nabla_x \log p_\theta(x),
 \end{equation}
-while we take the diffusion score from the network output at a small time near zero.
-We compare these learned scores against the known Brownian target $F(x)/D$ \cite{arts2023}.
+For diffusion diagnostics, we evaluate the learned score on centered clean configurations at
+\begin{equation}
+    t_{\mathrm{eval}} = 10^{-4}.
+\end{equation}
+This is the same terminal diffusion time used by the reverse sampler.
+The network output is already scaled as a score because the denoising target is $-\epsilon/\sigma(t)$; we do not multiply it by $\sigma(t)$ before comparison.
+For the VP schedule used here, $\sigma(t_{\mathrm{eval}})\approx 3.2\times 10^{-3}$.
+Strictly, the diffusion model provides $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$, the score of the slightly noised VP marginal, not the exact data score $\nabla_x\log p_0(x)$.
+We compare it to $F(x)/D$ as a small-time approximation and avoid $t=0$ because the conditional VP score target diverges as $\sigma(t)\to0$.
+Together with the CNF score, this diffusion score is compared against the known Brownian target $F(x)/D$ \cite{arts2023}.
 This benchmark is stricter than visual or distributional sample comparison: the model must recover the local equilibrium score, not only generate plausible conformations.
 
 The Gaussian baseline samples centered independent noise and serves only as a structural reference; it does not define a learned force field.
@@ -2147,6 +2156,11 @@ The training objective weights the squared error by $\sigma^2(t)$:
         \right].
     \end{aligned}
 \end{equation}
+No additional factor of $\sigma(t)$ is applied when we report diffusion score diagnostics: the model output is trained in score units through the $-\epsilon/\sigma(t)$ target.
+For Table~\ref{tab:score-agreement}, we evaluate the diffusion model on clean centered configurations at $t_{\mathrm{eval}}=10^{-4}$, giving $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$.
+For the VP schedule in the experiments, $\sigma(t_{\mathrm{eval}})\approx 3.2\times10^{-3}$.
+The comparison with the Brownian target $F(x)/D=\nabla_x\log p_0(x)$ therefore uses the small-time approximation $p_{t_{\mathrm{eval}}}\approx p_0$.
+We do not evaluate at exactly $t=0$ because the conditional target above is singular as $\sigma(t)\to0$.
 
 \section{Fokker-Planck Time Reversal}
 
