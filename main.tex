@@ -852,9 +852,19 @@ For score-field evaluation, we draw 1000 samples from the training data and comp
 We also compare the distributions of score norms and potential energies for generated samples against the training data to evaluate whether the models capture the overall scale of forces and energies in the system.
 
 Finally, we generate short trajectories by integrating the learned CNF and diffusion score vector fields forward in physical Brownian time.
+The learned score field from either the CNF or the diffusion was used to define the drift term in an overdamped Langevin SDE for a polymer system as described in section X.
+The Langevin SDE was integrated forward for 2000 steps with a step size of $dt = 5 \times 10^{-4}$, starting from a configuration randomly sampled from the training data.
+The generated trajectories were then compared against ground-truth Brownian trajectories in terms of their pairwise distance distributions and potential energy distributions to evaluate whether the learned score fields can produce realistic dynamics over time.
 
 \section{Results}
- 
+
+\subsection*{Sample Generation Quality}
+
+Following training, we began by using the trained CNF and diffusion models to generate 1000 polymer configurations for each of the three datasets (Base Rouse, Hairpin, Ring).
+We then calculated the distribution of pairwise distances for the generated samples and compared it against the training data distribution using maximum mean discrepancy (MMD) and energy distance metrics. 
+As a null baseline, we also sampled 1000 configurations from a $\mathcal{N}(0,1)$ Gaussian distribution computed the same metrics against the training data pairwise distance distribution.
+The results are summarized in Table 1.
+
 %Pairwise distance distributional metrics table
 \begin{table}[htbp]
 \centering
@@ -883,6 +893,11 @@ Lower energy and MMD values indicate closer agreement between generated conforma
 Both learned models improve substantially over centered Gaussian samples, with the CNF giving the strongest structural match in these runs.}
 \end{table}
 
+Although both the CNF and diffusion models significantly outperformed the Gaussian null baseline, the CNF consistently achieved lower MMD and energy distance values compared to the diffusion model across all three datasets.
+This suggests that overall, the CNF was able to generate more realistic samples from the training distribution of equilibrium polymer configurations than the diffusion model.
+
+Model performance was highest on the Base Rouse dataset, which has the simplest equilibrium distribution, and performance degraded on the Hairpin and Ring datasets, likely due to their more complex structural features and nonlocal interactions.
+However, even on the more complex Hairpin and Ring datasets, the CNF still outperformed the diffusion model, suggesting that the CNF's direct learning of a continuous transport field may provide a general advantage in modeling complex equilibrium distributions compared to the diffusion model's score-based approach.
 
 \begin{figure}[htbp]
 \centering
@@ -892,6 +907,15 @@ Columns show the base Rouse chain, hairpin-stabilized chain, and ring-closure ch
 Each cell contains four centered configurations with beads colored by sequence position, making the open-chain, paired-hairpin, and closed-ring geometries visually comparable across models.}
 \label{fig:full_generation_grid}
 \end{figure}
+
+This performance gap between the CNF and diffusion models is reflected in the generated sample grid shown in Figure 1.
+where the CNF samples appear to more closely match the structural features of the training data compared to the diffusion samples.
+For the hairpin dataset, for instance, the CNF-generated samples show clearer hairpin-like structures, whereas the diffusion-generated samples have "spiky", jagged conformations that do not resemble the training data.
+
+\subsection*{Accuracy of Learned Score Fields}
+
+
+
 
 %Learned score vs. ground-truth score correlation table
 \begin{table}[htbp]
