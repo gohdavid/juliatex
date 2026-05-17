@@ -873,6 +873,8 @@ Agreement between model-predicted scores and ground-truth scores was highest for
 In the previous section, we observed that the models had more difficulty generating realistic samples from the hairpin and ring datasets.
 We hypothesize that the inability of the generative models to accurately capture the complex structural features of these datasets is related to their poorer performance in learning physically accurate score fields, as the score field is closely tied to the underlying equilibrium distribution.
 If the model does not accurately learn the probability distribution of equilibrium conformations, then its predicted score field $\nabla_x \log p_\theta(x)$ will likely also fail to match the true Brownian score field $F(x)/D$.
+The hairpin case is especially difficult because the attractive Lennard-Jones contacts and excluded-volume repulsion create steep, high-magnitude forces, producing sharper log-density features than the base Rouse chain.
+With finite simulation step sizes, rare close-contact configurations can also generate very large steric forces, which makes the corresponding score field harder to learn stably.
 
 To further investigate the quality of the learned score fields, we also compared the distributions of score norms produced by the true Brownian score field and the model-predicted score fields.
 We evaluated the learned and true score norms on both training configurations and generated configurations to evaluate the physical self-consistency of each learned score field.
