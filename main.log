@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.9.13)  17 MAY 2026 13:21
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.9.13)  17 MAY 2026 15:50
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -252,10 +252,7 @@ Class revtex4-2 Info: mcite was not loaded (OK!) on input line 11.
 Class revtex4-2 Info: multicol was not loaded (OK!) on input line 11.
  (./main.aux
 
-LaTeX Warning: Label `fig:full_generation_grid' multiply defined.
-
-
-LaTeX Warning: Label `fig:full_generation_grid' multiply defined.
+LaTeX Warning: Label `fig:potential_energy_density' multiply defined.
 
 )
 \openout1 = `main.aux'.
@@ -376,150 +373,90 @@ Underfull \hbox (badness 1675) in paragraph at lines 97--98
  []
 
 [1] [2]
-Underfull \hbox (badness 1478) in paragraph at lines 239--240
+Underfull \hbox (badness 1478) in paragraph at lines 236--237
 []\TU/Arial(0)/m/n/10 Attractive Lennard-Jones contacts between paired
  []
 
 [3]
-Underfull \hbox (badness 3189) in paragraph at lines 505--507
+Underfull \hbox (badness 3189) in paragraph at lines 502--504
 \TU/Arial(0)/m/n/10 The Euler-Maruyama sampler starts from centered
  []
 
 
-Underfull \hbox (badness 4132) in paragraph at lines 545--548
+Underfull \hbox (badness 4132) in paragraph at lines 527--530
 []\TU/Arial(0)/m/n/10 We build the implementation around the SciML
  []
 
 
-Underfull \hbox (badness 1142) in paragraph at lines 545--548
+Underfull \hbox (badness 1142) in paragraph at lines 527--530
 \TU/Arial(0)/m/n/10 compatible array code, and several trace-estimation
  []
 
 
-Underfull \hbox (badness 1389) in paragraph at lines 555--560
+Underfull \hbox (badness 1389) in paragraph at lines 537--542
 \TU/Arial(0)/m/n/10 as a \TU/lmtt/m/n/10 SDEProblem\TU/Arial(0)/m/n/10 ; the drift function calls the same
  []
 
 
-Underfull \hbox (badness 2521) in paragraph at lines 555--560
+Underfull \hbox (badness 2521) in paragraph at lines 537--542
 \TU/Arial(0)/m/n/10 uses for score targets. The raw trajectory script
  []
 
-[4]
-Underfull \hbox (badness 2617) in paragraph at lines 566--567
+
+Underfull \hbox (badness 2617) in paragraph at lines 548--549
 []\TU/Arial(0)/m/n/10 The CNF implementation defines an \TU/lmtt/m/n/10 ODEProblem
  []
 
 
-Underfull \hbox (badness 3386) in paragraph at lines 590--594
+Underfull \hbox (badness 3386) in paragraph at lines 572--576
 \TU/Arial(0)/m/n/10 for likelihood evaluation and backward for sample
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 590--594
+Underfull \hbox (badness 10000) in paragraph at lines 572--576
 \TU/lmtt/m/n/10 InterpolatingAdjoint(autojacvec=ZygoteVJP())\TU/Arial(0)/m/n/10 ,
  []
 
-[5]
-Underfull \hbox (badness 3088) in paragraph at lines 708--711
+[4]
+Underfull \hbox (badness 3088) in paragraph at lines 690--693
 []\TU/Arial(0)/m/n/10 Both CNF and diffusion training use Zygote for
  []
 
-
-Underfull \hbox (badness 3482) in paragraph at lines 717--719
+[5]
+Underfull \hbox (badness 3482) in paragraph at lines 699--701
 []\TU/Arial(0)/m/n/10 We can summarize the full long-term BoltzFlow
- []
-
-
-Underfull \hbox (badness 2913) in paragraph at lines 765--768
-[]\TU/Arial(0)/m/n/10 We should describe the current codebase as a
  []
 
 File: figures/generations/full_generation_grid.png Graphic file (type bmp)
 <figures/generations/full_generation_grid.png>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
 File: figures/energy_force_dist/cnf_score_norm_density.png Graphic file (type bmp)
 <figures/energy_force_dist/cnf_score_norm_density.png>
 File: figures/energy_force_dist/diff_score_norm_density.png Graphic file (type bmp)
 <figures/energy_force_dist/diff_score_norm_density.png>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
 File: figures/energy_force_dist/cnf_potential_energy_density.png Graphic file (type bmp)
 <figures/energy_force_dist/cnf_potential_energy_density.png>
 File: figures/energy_force_dist/diff_potential_energy_density.png Graphic file (type bmp)
 <figures/energy_force_dist/diff_potential_energy_density.png>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+File: figures/simulations/timestep_samples.png Graphic file (type bmp)
+<figures/simulations/timestep_samples.png>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
 [6]
 
-LaTeX Warning: A float is stuck (cannot be placed); try class option [floatfix] on input line 852.
-
-[7]
-
-LaTeX Warning: A float is stuck (cannot be placed); try class option [floatfix] on input line 913.
-
-[8]
-Underfull \hbox (badness 3735) in paragraph at lines 1186--1189
-\TU/Arial(0)/m/n/10 For the hairpin system, the full equilibrium score
- []
+LaTeX Warning: A float is stuck (cannot be placed); try class option [floatfix] on input line 853.
 
 
-Underfull \hbox (badness 4378) in paragraph at lines 1186--1189
-\TU/Arial(0)/m/n/10 is the sum of the bonded Rouse score, all ac-
- []
-
-
-Underfull \hbox (badness 1082) in paragraph at lines 1186--1189
-\TU/Arial(0)/m/n/10 tive excluded-volume pair scores, the active hairpin
- []
-
-
-Underfull \hbox (badness 5050) in paragraph at lines 1308--1310
-\TU/Arial(0)/m/n/10 Dividing by $\OML/cmm/m/it/10 p$ \TU/Arial(0)/m/n/10 gives the instantaneous change-of-
- []
-
-[9]
-Underfull \hbox (badness 10000) in paragraph at lines 1506--1511
-[]\TU/Arial(0)/m/n/10 This subsection writes the analytic JVP that
- []
-
-
-Underfull \hbox (badness 2856) in paragraph at lines 1506--1511
-\TU/lmtt/m/n/10 _egnn_velocity_jvp \TU/Arial(0)/m/n/10 implements. At layer $\OML/cmm/m/it/10 `$\TU/Arial(0)/m/n/10 , the
- []
-
-
-Underfull \hbox (badness 1112) in paragraph at lines 1506--1511
-\TU/Arial(0)/m/n/10 coordinate JVP. The notation $\OML/cmm/m/it/10 d\OT1/cmr/m/n/10 (\OMS/cmsy/m/n/10 ^^A\OT1/cmr/m/n/10 )$ \TU/Arial(0)/m/n/10 means directional
- []
-
-[10]
-Underfull \hbox (badness 2142) in paragraph at lines 1662--1664
-\TU/Arial(0)/m/n/10 This recursion gives the full analytic JVP that the
- []
-
-[11] [12]
-Underfull \hbox (badness 1817) in paragraph at lines 2056--2058
-\TU/Arial(0)/m/n/10 Substituting $\OML/cmm/m/it/10 q[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 ) = \OML/cmm/m/it/10 p[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 y\OT1/cmr/m/n/10 )$ \TU/Arial(0)/m/n/10 into this backward-time
- []
-
-[13] (./main.bbl
-Underfull \hbox (badness 1681) in paragraph at lines 99--106
- \TU/Arial(0)/m/n/9 eling through stochastic differential equations (2021),
- []
-
-
-Underfull \hbox (badness 3536) in paragraph at lines 129--134
- \TU/Arial(0)/m/n/9 M. Federici, C. Clementi, F. Noé, R. Pinsler, and
- []
-
-) [14] (./main.aux)
-
-LaTeX Warning: There were multiply-defined labels.
-
- ) 
-Here is how much of TeX's memory you used:
- 6949 strings out of 476683
- 154026 string characters out of 5804047
- 1878018 words of memory out of 5000000
- 27107 multiletter control sequences out of 15000+600000
- 521875 words of font info for 90 fonts, out of 8000000 for 9000
- 1348 hyphenation exceptions out of 8191
- 72i,15n,77p,403b,305s stack positions out of 10000i,1000n,20000p,200000b,200000s
-
-Output written on main.pdf (14 pages).
+Class revtex4-2 Warning: Deferred flo
