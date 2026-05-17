@@ -20,33 +20,33 @@
 \begin{abstract}
 Equilibrium structural ensembles describe which molecular conformations occur, but they do not directly provide the forces needed to simulate motion.
 Statistical mechanics connects these views: an equilibrium distribution defines an energy landscape, and gradients of that landscape determine conservative force information.
-We study this idea in controlled polymer toy systems before applying it to protein dynamics.
+We first study this idea in controlled polymer toy systems, with protein dynamics as the motivating target.
 For Rouse-chain variants, the true equilibrium score is known, letting us test whether continuous normalizing flows and diffusion models recover both conformational statistics and force information from samples alone.
-The models improve over Gaussian structural baselines, but score recovery is most reliable for simple harmonic chains and becomes harder when constraints and nonlocal contacts shape the ensemble.
-These benchmarks clarify what equilibrium-density learning can and cannot yet provide for molecular dynamics inference.
+We find that learned models improve over Gaussian structural baselines, but score recovery is most reliable for simple harmonic chains and becomes harder when constraints and nonlocal contacts shape the ensemble.
+Together, these benchmarks clarify what equilibrium-density learning can and cannot yet provide for molecular dynamics inference.
 \end{abstract}
 
 \maketitle
 
 \section{Motivation}
 
-The motivating problem is protein conformational dynamics.
+We are motivated by protein conformational dynamics.
 Experimental and computational methods can provide structural ensembles, but those ensembles often do not include the time ordering, transition paths, or effective force fields needed to reconstruct dynamics directly \cite{noe2019,arts2023}.
-If a model can learn the equilibrium density of molecular conformations, then statistical mechanics suggests a route from that density to an effective energy landscape and conservative force field.
+If we can learn the equilibrium density of molecular conformations, statistical mechanics suggests a route from that density to an effective energy landscape and conservative force field.
 For example, in a canonical ensemble the conformational density is proportional to $\exp[-U(x)/(k_B T)]$, so gradients of the learned log density carry force information.
 Additional dynamical assumptions then determine how that force information is used to simulate trajectories.
 
 Directly testing this idea on atomistic proteins is difficult because the relevant equilibrium distribution is only partially observed and the true effective score or force field is not available as a clean target.
 We therefore study controlled Brownian-dynamics synthetic systems based on Rouse-chain polymer dynamics \cite{rouse1953}.
 These systems are not protein models; they are tractable polymer benchmarks where a known stochastic process generates equilibrium samples and the simulator provides the corresponding score field for evaluation.
-This lets us test whether continuous normalizing flows and diffusion models learn both the equilibrium distribution of configurations and the local log-density gradients that, in this Brownian toy setting, govern overdamped dynamics \cite{grathwohl2018,arts2023}.
+These benchmarks let us test whether continuous normalizing flows and diffusion models learn both the equilibrium distribution of configurations and the local log-density gradients that, in this Brownian toy setting, govern overdamped dynamics \cite{grathwohl2018,arts2023}.
 
 For a configuration $x_t \in \mathbb{R}^{d \times N}$ with $N$ beads in $d$ spatial dimensions, we simulate the dynamics
 \begin{equation}
     dX_t = F(X_t)\,dt + \sqrt{2D}\,dW_t,
 \end{equation}
 where $D$ denotes the diffusion coefficient, $W_t$ denotes standard Brownian motion, and $F(x)$ denotes the deterministic drift.
-For the current base Rouse simulations, $D=0.25$.
+In the base Rouse simulations, $D=0.25$.
 For the Rouse-chain experiments, adjacent harmonic springs generate the base drift,
 \begin{equation}
     F_i(x)
@@ -57,20 +57,20 @@ For the Rouse-chain experiments, adjacent harmonic springs generate the base dri
     \right),
 \end{equation}
 with endpoint modifications.
-The implementation also supports nonideal terms, including Lennard-Jones interactions, excluded volume, confinement, hairpin contacts, and ring closure.
+We also support nonideal terms, including Lennard-Jones interactions, excluded volume, confinement, hairpin contacts, and ring closure.
 
 At equilibrium, the stationary-density score determines the drift:
 \begin{equation}
     F(x) = D \nabla_x \log p_{\mathrm{eq}}(x).
 \end{equation}
-This relation gives a practical test for learned generative models.
+We use this relation as a practical test for learned generative models.
 If a model learns $p_{\mathrm{eq}}(x)$, its learned score should align with the Brownian drift divided by $D$.
-For the current base Rouse setting, this relation gives the score target $F(x)/0.25 = 4F(x)$.
-The current experiments therefore learn equilibrium coordinate distributions from static snapshots, then compare generated samples and learned score fields with known Rouse-chain quantities.
+For that base setting, this relation gives the score target $F(x)/0.25 = 4F(x)$.
+We therefore learn equilibrium coordinate distributions from static snapshots, then compare generated samples and learned score fields with known Rouse-chain quantities.
 
 \section{Overdamped Langevin and Detailed Balance}
 
-The current experiments use overdamped Brownian dynamics rather than inertial molecular dynamics.
+We use overdamped Brownian dynamics rather than inertial molecular dynamics.
 In this regime, solvent friction damps momenta on a faster timescale than the configurational motion we model, so the state is the bead-coordinate configuration $x$ and not a position-momentum pair.
 For a physical coordinate vector $\vec{q}$ with potential energy $V(\vec{q})$, the overdamped Langevin SDE has the form
 \begin{equation}
@@ -141,7 +141,7 @@ Equivalently,
     =
     \frac{F(x)}{D}.
 \end{equation}
-This detailed-balance relation is the score target used throughout the current codebase.
+We use this detailed-balance relation as the score target throughout our evaluations.
 A model that evaluates or differentiates the equilibrium log density can therefore be tested against the analytic overdamped drift or force field supplied by the simulator \cite{noe2019,arts2023}.
 
 \section{Data}
@@ -152,7 +152,7 @@ The main data path loads HDF5 files containing arrays of shape
     x \in \mathbb{R}^{d \times N \times B},
 \end{equation}
 where $B$ denotes the number of frames.
-The current polymer configs simulate two-dimensional chains with $N=32$ beads.
+We simulate two-dimensional chains with $N=32$ beads.
 For the base Rouse simulation, the SDE above generates trajectories with independent Brownian noise in every bead coordinate.
 The base simulation uses $D=0.25$, unit bond length, and $k_\xi=3.0$.
 The ring-closure and hairpin configurations inherit these base constants and add different structural constraints.
@@ -160,7 +160,7 @@ The raw trajectories may include center-of-mass diffusion, but model training ce
 
 \section{Time Conventions}
 
-In this work, we use two time variables with different meanings.
+We use two time variables with different meanings.
 For the Brownian dynamics simulator and all generated polymer trajectories, $t$ represents physical simulation time.
 For the CNF and the diffusion generative models, we use $\tau \in [0,1]$ as a model pseudotime: $\tau=0$ is the data distribution and $\tau=1$ is the standard normal base distribution.
 For the CNF, likelihood evaluation integrates from $\tau=0$ to $\tau=1$, while sampling integrates back from $\tau=1$ to $\tau=0$.
@@ -224,7 +224,7 @@ Excluded volume uses a purely repulsive power-law potential,
     \right)^{p},
 \end{equation}
 again with cutoff, softening, and bonded-neighbor exclusion.
-The current excluded-volume configuration inherits these defaults from the base file:
+For excluded volume, we inherit these defaults from the base configuration:
 \begin{align}
     \epsilon_{\mathrm{EV}}=0.03,
     \quad
@@ -248,7 +248,7 @@ For unit target bond length, the initializer places $N$ beads on a circle with r
     \frac{1}{2\sin(\pi/N)}
 \end{equation}
 and adds Gaussian initialization noise with standard deviation $0.02$ before centering the frame.
-The current ring run uses $N=32$, $D=0.25$, $k_\xi=3.0$, and the same unit adjacent-bond length as the base chain.
+For the ring run, we use $N=32$, $D=0.25$, $k_\xi=3.0$, and the same unit adjacent-bond length as the base chain.
 
 The ring-specific term adds a harmonic closure bond between beads $1$ and $N$:
 \begin{equation}
@@ -261,13 +261,13 @@ The ring-specific term adds a harmonic closure bond between beads $1$ and $N$:
 \end{equation}
 This produces the same spring force as an adjacent Rouse bond, but applied across the chain ends.
 The configuration also enables excluded volume and centered confinement, with the same constants listed above, and leaves the optional ring Lennard-Jones contact disabled.
-Thus the ring experiment tests whether the model can learn a closed-polymer equilibrium distribution rather than only an open-chain distribution.
+The ring experiment therefore tests whether the model can learn a closed-polymer equilibrium distribution rather than only an open-chain distribution.
 
 \subsection*{Hairpin-Stabilized Chain}
 
 The hairpin system starts from a two-strand initialization.
 For an even number of beads, the initializer places the first half of the chain on one strand and the second half on the opposing strand, with paired beads facing each other.
-The current hairpin configuration sets the initial strand separation to $0.95$ and adds Gaussian initialization noise with standard deviation $0.02$.
+For the hairpin configuration, we set the initial strand separation to $0.95$ and add Gaussian initialization noise with standard deviation $0.02$.
 
 Attractive Lennard-Jones contacts between paired beads stabilize the hairpin:
 \begin{equation}
@@ -276,7 +276,7 @@ Attractive Lennard-Jones contacts between paired beads stabilize the hairpin:
     |i-j| \geq s_{\min}.
 \end{equation}
 Only these designated long-range pairs receive the hairpin LJ interaction.
-The current configuration uses
+We use
 \begin{align}
     \epsilon_{\mathrm{hp}}=5.0,
     \quad
@@ -389,7 +389,7 @@ The training objective minimizes negative log likelihood:
     \right].
 \end{equation}
 
-The current polymer CNF uses an EGNN-style vector field.
+For the polymer CNF, we use an EGNN-style vector field.
 The network builds pairwise messages from node embeddings, sequence separation $i-j$, squared pair distances $\|x_i-x_j\|^2$, and pseudotime $\tau$.
 It forms coordinate updates from relative displacements, so the vector field remains translation equivariant after centering.
 The main EGNN CNF configuration estimates the divergence term with a Hutchinson JVP trace estimator rather than an exact trace \cite{hutchinson1989,grathwohl2018}.
@@ -458,12 +458,12 @@ The adjoint dynamics satisfy
         \right)
     \end{bmatrix}.
 \end{align}
-The Julia code delegates differentiable ODE solves and adjoint machinery to the SciML stack rather than manually coding these equations in the experiment loop.
+We delegate differentiable ODE solves and adjoint machinery to the SciML stack rather than manually coding these equations in the experiment loop.
 
 \section{Variance-Preserving Diffusion Model}
 
 The diffusion baseline learns the score field directly \cite{ho2020,song2021}.
-The implementation defines a continuous-time variance-preserving (VP) forward SDE
+We define a continuous-time variance-preserving (VP) forward SDE
 \begin{equation}
     dx_t
     =
@@ -477,7 +477,7 @@ with a linear noise-rate schedule
     \quad
     t \in [0,1],
 \end{equation}
-with $\beta_{\min}=0.1$ and $\beta_{\max}=20$ in the code.
+with $\beta_{\min}=0.1$ and $\beta_{\max}=20$ in our experiments.
 The marginal forward process has the form
 \begin{equation}
     x_t = \mu(t)x_0 + \sigma(t)\epsilon,
@@ -505,7 +505,7 @@ where
         \beta_{\min}t
     \right].
 \end{align}
-The code centers both $x_0$ and the sampled noise, so the diffusion process stays in the centered coordinate subspace that training uses.
+We center both $x_0$ and the sampled noise, so the diffusion process stays in the centered coordinate subspace used for training.
 For numerical stability, it clamps training times below by $10^{-5}$ and floors $\sigma(t)$ at the corresponding minimum positive value before forming the score target.
 
 We train the score network $s_\theta(x_t,t)$ to estimate
@@ -531,7 +531,7 @@ We train with the weighted denoising score-matching objective \cite{ho2020,song2
 
 The diffusion score model also uses an EGNN-style architecture.
 It keeps learned node embeddings, uses sequence-distance and radial pair features, and updates coordinates through pairwise relative displacements.
-The code centers the output and interprets it directly as $\nabla_x \log p_t(x)$.
+We center the output and interpret it directly as $\nabla_x \log p_t(x)$.
 
 Generation follows the reverse-time VP SDE \cite{song2021}.
 For this linear schedule, the reverse coefficients satisfy
@@ -564,9 +564,9 @@ During diffusion training, the optimizer also clips parameter gradients elementw
 
 \section{Evaluation}
 
-The experiments report sample-level statistics and score-field diagnostics.
-For generated samples, they use the mean absolute error between average pairwise distances in generated configurations and training configurations as the main structural metric.
-The code also records the fraction of generated values and samples that remain finite.
+We report sample-level statistics and score-field diagnostics.
+For generated samples, we use the mean absolute error between average pairwise distances in generated configurations and training configurations as the main structural metric.
+We also record the fraction of generated values and samples that remain finite.
 
 For Rouse and polymer Langevin data, the simulator provides analytic force targets.
 We obtain the CNF score by differentiating the learned log likelihood,
@@ -637,28 +637,28 @@ CNF &
 \end{table*}
 \section{Julia and SciML Implementation}
 
-We build the implementation in Julia and around the SciML ecosystem \cite{bezanson2017,rackauckas2017,rackauckas2020universal}.
-This choice does more than provide convenience: the project needs stochastic simulation, neural ODE likelihoods, differentiable ODE solves, GPU-compatible array code, and several trace-estimation strategies in the same code path.
-Julia makes these pieces composable without translating between separate simulation, autodiff, and machine-learning frameworks.
+We build the implementation in Julia around the SciML ecosystem \cite{bezanson2017,rackauckas2017,rackauckas2020universal}.
+We choose this stack for more than convenience: we need stochastic simulation, neural ODE likelihoods, differentiable ODE solves, GPU-compatible array code, and several trace-estimation strategies in the same code path.
+Julia lets us compose these pieces without translating between separate simulation, autodiff, and machine-learning frameworks.
 
 \subsection*{Brownian Data Generation with StochasticDiffEq}
 
-The Rouse data generator constructs the simulation directly as an SDE problem \cite{rouse1953,rackauckas2017}.
-The simulator constructs
+We construct the Rouse data generator directly as a SciML SDE problem \cite{rouse1953,rackauckas2017}.
+Specifically, we represent
 \begin{equation}
     dX_t = F(X_t)\,dt + \sqrt{2D}\,dW_t
 \end{equation}
-as a \texttt{SDEProblem}; the drift function calls the same polymer force routine that the evaluation code later uses for score targets.
-The raw trajectory script calls \texttt{StochasticDiffEq} solvers through a configurable solver interface.
+as a \texttt{SDEProblem}, and the drift function calls the same polymer force routine that we later use for score targets.
+We call \texttt{StochasticDiffEq} solvers through a configurable solver interface.
 The available choices include Euler-Maruyama, Euler-Heun, RKMil, SOSRA, and SOSRA2.
-This lets the same model family generate inexpensive baseline trajectories or more stable stochastic trajectories by changing a YAML configuration rather than rewriting simulation code.
+This lets us generate inexpensive baseline trajectories or more stable stochastic trajectories by changing a YAML configuration rather than rewriting simulation code.
 
-The learning experiments then reuse the saved trajectories through HDF5 loaders.
+We then reuse the saved trajectories through HDF5 loaders.
 This structure separates stochastic simulation from generative-model training while keeping both stages inside Julia.
 
 \subsection*{CNF Likelihoods as SciML ODE Problems}
 
-The CNF implementation defines an \texttt{ODEProblem} whose \texttt{ComponentArray} state contains both coordinates and accumulated log-density change:
+We define the CNF as an \texttt{ODEProblem} whose \texttt{ComponentArray} state contains both coordinates and accumulated log-density change:
 \begin{equation}
     u(\tau)
     =
@@ -683,12 +683,12 @@ The ODE right-hand side returns
         \right)
     \end{bmatrix}.
 \end{equation}
-The code solves the same problem definition forward for likelihood evaluation and backward for sample generation.
-The configs select the solver from the SciML ODE stack; current configs use adaptive \texttt{Tsit5} and support fixed-step \texttt{RK4}.
+We solve the same problem definition forward for likelihood evaluation and backward for sample generation.
+We select the solver from the SciML ODE stack; our configs use adaptive \texttt{Tsit5} and support fixed-step \texttt{RK4}.
 For training, the solve uses \texttt{InterpolatingAdjoint(autojacvec=ZygoteVJP())}, so gradients propagate through the ODE solve while remaining compatible with the neural vector field and the trace estimator.
 
 This design keeps the generative model close to its mathematical definition.
-The code avoids a separate CNF framework: the likelihood model is an ODE with a structured state, a vector field, a trace estimator, and a SciML adjoint.
+We avoid a separate CNF framework: the likelihood model is an ODE with a structured state, a vector field, a trace estimator, and a SciML adjoint.
 
 \subsection*{Hutchinson JVP Trace Estimator}
 
@@ -708,9 +708,9 @@ For a vector field $f_\theta(x,\tau)$, the Hutchinson identity estimates the div
     \right],
 \end{equation}
 where $v$ denotes a Rademacher probe.
-In the SciML implementation, the code samples this probe when it constructs the \texttt{ODEProblem} for a batch, captures it in the ODE right-hand-side closure, and reuses that fixed probe for every RHS evaluation in the adaptive solve.
+In the SciML implementation, we sample this probe when we construct the \texttt{ODEProblem} for a batch, capture it in the ODE right-hand-side closure, and reuse that fixed probe for every RHS evaluation in the adaptive solve.
 The augmented RHS returns both the coordinate velocity $f_\theta(x,\tau)$ and the log-density derivative $-\widehat{\operatorname{Tr}}$, so the SciML solver integrates the stochastic trace estimate as part of the same state as the coordinates.
-The implementation samples one probe per batch and computes
+We sample one probe per batch and compute
 \begin{equation}
     \widehat{\operatorname{Tr}}
     =
@@ -721,8 +721,8 @@ The implementation samples one probe per batch and computes
     \right]_{i,j}.
 \end{equation}
 
-The implementation propagates the EGNN JVP explicitly through the full vector field, not only through the final coordinate update.
-For the current multi-layer EGNN, each layer maintains node features $h_i^\ell$ and their directional derivatives $dh_i^\ell$ with respect to the coordinate probe $v$.
+We propagate the EGNN JVP explicitly through the full vector field, not only through the final coordinate update.
+For our multi-layer EGNN, each layer maintains node features $h_i^\ell$ and their directional derivatives $dh_i^\ell$ with respect to the coordinate probe $v$.
 It initializes $dh_i^0=0$ because the learned node embeddings do not depend on the coordinates, then propagates derivatives through pairwise geometry, edge MLPs, coordinate aggregation, message aggregation, and node updates.
 For example, if $r_{ij}=x_i-x_j$, then the JVP carries the directional derivatives
 \begin{equation}
@@ -777,13 +777,13 @@ The node-feature JVP uses the derivative of the aggregated messages,
     M_{ij}dm_{ij}^\ell,
 \end{equation}
 passes $(dh_i^\ell,d\bar{m}_i^\ell,0)$ through the node MLP JVP, and updates $dh_i^{\ell+1}$ together with the primal node features.
-After all layers, the implementation averages both accumulated coordinate updates and accumulated directional derivatives by the number of EGNN layers.
+After all layers, we average both accumulated coordinate updates and accumulated directional derivatives by the number of EGNN layers.
 Thus the analytic path returns both $f_\theta(x,\tau)$ and the full $J_{f_\theta}(x,\tau)v$ in one structured forward pass.
 This approach avoids materializing the full Jacobian over all bead coordinates.
 For a 32-bead chain in two dimensions, the full Jacobian already forms a dense object over 64 coordinate variables per sample; for larger systems, exact traces become the wrong abstraction.
 The JVP estimator keeps the CNF likelihood scalable while preserving the same ODE interface.
 
-The code also keeps alternative trace modes and provides an exact Zygote-based divergence for smaller checks.
+We also keep alternative trace modes and provide an exact Zygote-based divergence for smaller checks.
 It provides a finite-difference Hutchinson mode, \texttt{hutchinson\_fd}, which approximates the same JVP by
 \begin{equation}
     J_{f_\theta}(x,\tau)v
@@ -796,20 +796,20 @@ It provides a finite-difference Hutchinson mode, \texttt{hutchinson\_fd}, which 
 \end{equation}
 This finite-difference path gives a useful diagnostic fallback because it tests the same trace estimator without relying on the analytic JVP implementation.
 The production path uses \texttt{hutchinson\_jvp} because it runs faster and remains analytic: it avoids two extra vector-field evaluations per trace estimate, avoids finite-difference step-size error, and remains differentiable through the exact directional-derivative computation.
-Training still uses Zygote for gradients through the CNF loss and SciML adjoint solve, but Zygote does not derive this EGNN JVP automatically; the model code implements the JVP explicitly.
+Training still uses Zygote for gradients through the CNF loss and SciML adjoint solve, but Zygote does not derive this EGNN JVP automatically; we implement the JVP explicitly.
 
 \subsection*{Autodiff and Stability}
 
 Both CNF and diffusion training use Zygote for reverse-mode gradients.
 Several small custom adjoints remove avoidable AD overhead for common tensor operations such as batched node embeddings, row concatenation, and centering.
-The diffusion code also uses \texttt{Zygote.ignore} and \texttt{dropgrad} where fixed geometric inputs, masks, sampled noise, or numerical guards should not enter the trainable derivative path.
+We also use \texttt{Zygote.ignore} and \texttt{dropgrad} where fixed geometric inputs, masks, sampled noise, or numerical guards should not enter the trainable derivative path.
 
 The result keeps SDE simulation for data generation, CNF ODE solving for likelihood and sampling, adjoint sensitivity for CNF training, neural network training, and GPU execution in one language and one type system.
-This gives Julia its main advantage for this project: the mathematical objects in the paper map directly to executable SciML problems, and the engineering choices needed for stability remain visible in the code rather than hidden behind a separate modeling layer.
+This is the main Julia advantage for our project: the mathematical objects in the paper map directly to executable SciML problems, and the engineering choices needed for stability remain visible rather than hidden behind a separate modeling layer.
 
 \section{Overdamped Trajectory-Inference Algorithm}
 
-We can summarize the full long-term BoltzFlow trajectory-inference idea from the earlier proposal as follows.
+We summarize the long-term BoltzFlow trajectory-inference idea from the earlier proposal as follows.
 First, obtain equilibrium snapshots
 \begin{equation}
     \{\vec{q}_1,\ldots,\vec{q}_n\}
@@ -827,7 +827,7 @@ Under detailed balance for overdamped Langevin dynamics, this score determines t
     =
     D\nabla_{\vec{q}}\log P(\vec{q}).
 \end{equation}
-One can then evolve an overdamped stochastic trajectory with
+We can then evolve an overdamped stochastic trajectory with
 \begin{equation}
     d\vec{q}_t
     =
@@ -835,30 +835,23 @@ One can then evolve an overdamped stochastic trajectory with
     +
     \sqrt{2D}\,dW_t.
 \end{equation}
-This overdamped trajectory-inference loop matches the Brownian setting used in the current experiments.
-The current implementation does not yet execute this loop for atomistic proteins; instead, it validates the score-learning components on Brownian/Rouse systems where we know the target force field.
-
-% \section{Current Scope}
-
-% The current project is scoped to focus on Brownian-dynamics and polymer-equilibrium analysis.
-% Protein dynamics remain a longer-term motivation, but the implemented system does not yet infer atomistic protein trajectories from static structural ensembles.
-% The code supports a narrower practical claim: we can train equivariant CNF and diffusion models on centered equilibrium snapshots from Rouse-style Brownian simulations, sample them as generative models, and evaluate them against known equilibrium score fields.
+This overdamped trajectory-inference loop matches the Brownian setting used in our experiments.
+We do not yet execute this loop for atomistic proteins; instead, we validate the score-learning components on Brownian/Rouse systems where we know the target force field.
 
 \section{Evaluation}
 
-Both the CNF and diffusion models were trained on the ground-truth Rouse base, Rouse hairpin, and Rouse ring dataset described above.
-The CNF velocity field and the diffusion score field were parametrized/predicted by the same 3-layer EGNN architecture.
-Each EGNN layer across both models used 6-layer MLPs with 256 hidden units per layer for both edge and node updates.
-For each polymer dataset, the CNF was trained for 60 epochs with a batch size of 128 and the Adam optimizer with learning rate $2 \times 10^{-3}$. 
-The diffusion model was trained for 80 epochs with a batch size of 128 and the Adam optimizer with learning rate $5 \times 10^{-5}$. 
+We trained CNF and diffusion models on the base Rouse, hairpin, and ring datasets described above.
+We parameterized the CNF velocity field and the diffusion score field with the same 3-layer EGNN architecture.
+Each EGNN layer uses 6-layer MLPs with 256 hidden units per layer for both edge and node updates.
+For each polymer dataset, we trained the CNF for 60 epochs with a batch size of 128 and the Adam optimizer with learning rate $2 \times 10^{-3}$.
+We trained the diffusion model for 80 epochs with a batch size of 128 and the Adam optimizer with learning rate $5 \times 10^{-5}$.
 
-Across all datasets, trained models were evaluated on their ability to generate samples and recover the ground-truth polymer score field.
-For sample generation, 1000 polymer configurations were generated from each model, and the distribution of pairwise particle distances was
-compared against the training data pairwise distance distribution using distributional metrics such as maximum mean discrepancy (MMD) and energy distance.
-For score field evaluation, 1000 samples were drawn from the training data, and for each sample, the learned score was compared against the known Brownian score target $F(x)/D$ using cosine similarity, mean squared error (MSE), and Pearson correlation coefficient $r^2$.
-We also compared the distributions of score norms and potential energies for generated samples against the training data to evaluate whether the models capture the overall scale of forces and energies in the system.
+Across all datasets, we evaluate whether the trained models can generate samples and recover the ground-truth polymer score field.
+For sample generation, we draw 1000 polymer configurations from each model, then compare the generated and training pairwise-distance distributions using maximum mean discrepancy (MMD) and energy distance.
+For score-field evaluation, we draw 1000 samples from the training data and compare each learned score against the known Brownian score target $F(x)/D$ using cosine similarity, mean squared error (MSE), and Pearson correlation coefficient $r^2$.
+We also compare the distributions of score norms and potential energies for generated samples against the training data to evaluate whether the models capture the overall scale of forces and energies in the system.
 
-Lastly, we used the trained CNF and diffusion models to generate short trajectories by integrating their learned score vector fields forward in physical Brownian time.
+Finally, we generate short trajectories by integrating the learned CNF and diffusion score vector fields forward in physical Brownian time.
 
 \section{Results}
  
@@ -891,13 +884,12 @@ Both learned models improve substantially over centered Gaussian samples, with t
 \end{table}
 
 
-%insert image from figures/generations/full_generation_grid.png here
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/generations/full_generation_grid.png}
-\caption{Representative generated and reference polymer conformations.
-Columns show the base Rouse, hairpin, and ring systems; rows show simulation samples, CNF samples, and diffusion samples.
-The grid provides a qualitative comparison of whether each learned model reproduces the geometric structure of the target ensemble.}
+\caption{Representative polymer conformations from the simulator and learned generative models.
+Columns show the base Rouse chain, hairpin-stabilized chain, and ring-closure chain; rows show reference simulation samples, CNF samples, and diffusion samples.
+Each cell contains four centered configurations with beads colored by sequence position, making the open-chain, paired-hairpin, and closed-ring geometries visually comparable across models.}
 \label{fig:full_generation_grid}
 \end{figure}
 
@@ -930,8 +922,10 @@ The CNF score is most accurate for the harmonic base Rouse chain, while both mod
 \centering
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
-\caption{Score-norm distributions for base Rouse generated samples.
-The panels compare CNF and diffusion score magnitudes on generated configurations against the corresponding training-sample distribution, testing whether each model recovers the scale of the equilibrium force field as well as its direction.}
+\caption{Score-norm distributions for the base Rouse system, with the CNF on the left and the diffusion model on the right.
+Solid curves show kernel-density estimates and dashed vertical lines mark the corresponding means.
+Black and blue compare physics and model score norms on training configurations, while red and green compare physics and model score norms on generated samples.
+The CNF keeps generated-sample score magnitudes near the physical training scale, whereas the diffusion samples have much larger physical score norms than their model-predicted scores.}
 \label{fig:score_norm_density}
 \end{figure}
 
@@ -939,8 +933,9 @@ The panels compare CNF and diffusion score magnitudes on generated configuration
 \centering
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
 \includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
-\caption{Potential-energy distributions for base Rouse generated samples.
-The panels compare the simulator energy evaluated on CNF and diffusion samples with the energy distribution of training configurations, providing an independent check of whether generated conformations lie in typical equilibrium regions.}
+\caption{Physics potential-energy distributions for base Rouse generated samples, with the CNF on the left and the diffusion model on the right.
+Black curves show training configurations and blue curves show generated configurations; dashed vertical lines mark the corresponding mean energies.
+CNF samples overlap the training-energy range with a slightly lower mean and broader spread, while diffusion samples are shifted to substantially higher energies, indicating that many diffusion configurations fall outside the typical equilibrium-energy region.}
 \label{fig:potential_energy_density}
 \end{figure}
 
@@ -949,7 +944,8 @@ The panels compare the simulator energy evaluated on CNF and diffusion samples w
 \centering
 \includegraphics[width=\columnwidth]{figures/simulations/timestep_samples.png}
 \caption{Representative polymer trajectory rollouts at normalized times $t=0$ through $t=1$.
-Columns compare the simulator trajectory with trajectories generated by integrating the learned CNF and diffusion score fields, illustrating how closely each learned dynamics model preserves the qualitative conformational evolution of the reference system.}
+Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the simulator trajectory, the CNF-driven trajectory, and the diffusion-driven trajectory.
+The CNF rollout preserves the chain-like geometry more closely across time, while the diffusion rollout becomes more compact and tangled under the learned score field.}
 \label{fig:timestep_samples}
 \end{figure}
 
@@ -1148,7 +1144,7 @@ This statement motivates using a learned density model to drive overdamped Brown
 
 \subsection{Overdamped Brownian Score Relation}
 
-The Brownian systems in the code follow the Itô SDE
+Our Brownian systems follow the Itô SDE
 \begin{equation}
     dX_t
     =
@@ -1298,7 +1294,7 @@ Only the two terminal beads receive new bonded score contributions:
     (x_1-x_N).
 \end{align}
 Equivalently, the Brownian drift contributions are $k_\xi(x_N-x_1)$ on bead $1$ and $k_\xi(x_1-x_N)$ on bead $N$.
-When ring bonding is enabled, the code treats the $(1,N)$ pair as bonded for nonbonded exclusions, so excluded volume does not also act on the closure spring pair.
+When ring bonding is enabled, we treat the $(1,N)$ pair as bonded for nonbonded exclusions, so excluded volume does not also act on the closure spring pair.
 The ring-closure configuration additionally enables the same excluded-volume and centered-confinement terms used below, but leaves the optional ring Lennard-Jones contact disabled.
 
 The nonideal hairpin experiment adds pair potentials to the same score.
@@ -1420,7 +1416,7 @@ Then the LJ score contribution is
     r_{ij}.
 \end{equation}
 The first term is strongly repulsive at short distance, while the second term creates attraction once the beads are outside the repulsive core.
-The code optionally subtracts the LJ energy value at the cutoff; this shift changes the potential by a constant inside the cutoff and therefore does not change the score.
+We optionally subtract the LJ energy value at the cutoff; this shift changes the potential by a constant inside the cutoff and therefore does not change the score.
 The hairpin experiment applies this LJ term only to paired beads
 \begin{equation}
     \mathcal{H}
@@ -1678,7 +1674,7 @@ With $z(0)=x$ and standard normal base density at $z(1)$,
 \end{equation}
 The augmented CNF state stores the integrated log-density change rather than the absolute density.
 Here $\Delta\log p(\tau)=\log p(z(\tau),\tau)-\log p(z(0),0)$, so differentiating removes the constant initial term.
-Using the instantaneous change-of-variables result above, the implementation therefore accumulates
+Using the instantaneous change-of-variables result above, we therefore accumulate
 \begin{equation}
     \begin{aligned}
         \frac{d}{d\tau}\Delta\log p
@@ -1794,10 +1790,10 @@ The trace therefore sums each matching response
          {\partial x_{a,k}}.
 \end{equation}
 
-In the SciML implementation, \texttt{\_cnf\_problem} samples one $\{-1,+1\}$ probe with the same shape as the batch coordinates before it constructs the \texttt{ODEProblem}.
+In the SciML implementation, we sample one $\{-1,+1\}$ probe with the same shape as the batch coordinates before constructing the \texttt{ODEProblem}.
 The ODE right-hand side keeps that probe fixed for the whole solve.
 Adaptive substeps, rejected steps, and adjoint replay therefore evaluate the same trace direction.
-If the code drew a new probe at every RHS call, the ODE would see extra time-dependent noise rather than one well-defined stochastic trace estimate.
+If we drew a new probe at every RHS call, the ODE would see extra time-dependent noise rather than one well-defined stochastic trace estimate.
 For each RHS call, the augmented derivative has the schematic form
 \begin{equation}
     \frac{d}{d\tau}
@@ -1812,7 +1808,7 @@ For each RHS call, the augmented derivative has the schematic form
         v^T J_{f_\theta}(x,\tau)v
     \end{bmatrix}.
 \end{equation}
-The code computes the matrix-vector product
+We compute the matrix-vector product
 \begin{equation}
     J_{f_\theta}(x,\tau)v
     =
@@ -1821,7 +1817,7 @@ The code computes the matrix-vector product
     f_\theta(x+\alpha v,\tau)
     \right|_{\alpha=0}
 \end{equation}
-analytically for the EGNN, then forms
+analytically for the EGNN, then form
 \begin{equation}
     \widehat{\operatorname{Tr}}
     =
@@ -1836,10 +1832,10 @@ During training, the loss differentiates through this stochastic trace estimate 
 
 \subsection{Full EGNN JVP Recursion}
 
-This subsection writes the analytic JVP that \texttt{\_egnn\_velocity\_jvp} implements.
+We write the analytic JVP implemented by \texttt{\_egnn\_velocity\_jvp}.
 At layer $\ell$, the EGNN stores node features $h_i^\ell$ and coordinate state $x_i$.
 The JVP in this subsection differentiates the vector field with respect to coordinates in the probe direction $v$.
-It does not compute a parameter derivative; Zygote still differentiates the final CNF loss with respect to the trainable parameters after the code computes this coordinate JVP.
+It does not compute a parameter derivative; Zygote still differentiates the final CNF loss with respect to the trainable parameters after we compute this coordinate JVP.
 The notation $d(\cdot)$ means directional derivative along the perturbed coordinates $x+\alpha v$:
 \begin{equation}
     dQ
@@ -1979,7 +1975,7 @@ If the node MLP returns $\Delta h_i^\ell$ and $d\Delta h_i^\ell$, then
     dh_i^\ell+d\Delta h_i^\ell.
 \end{equation}
 The EGNN repeats this process layer by layer: compute pair geometry, run the edge network, update coordinates, aggregate messages, and update node features, while carrying the matching directional derivatives alongside the ordinary values.
-After $L$ layers, the code returns
+After $L$ layers, we return
 \begin{equation}
     f_\theta(x,\tau)
     =
@@ -2554,7 +2550,7 @@ Replacing the unknown score $\nabla_x\log p_t(x)$ with the learned score model $
         \beta(t)s_\theta(x_t,t).
     \end{aligned}
 \end{equation}
-Because the implementation steps from a larger time $t$ to a smaller time $t-\Delta t$, it applies this reverse SDE with a negative time increment.
+Because the sampler steps from a larger time $t$ to a smaller time $t-\Delta t$, it applies this reverse SDE with a negative time increment.
 Equivalently, we write the Euler-Maruyama update as
 \begin{align}
     x_{t-\Delta t}
@@ -2589,8 +2585,8 @@ Substituting the VP coefficients gives
     +
     \sqrt{\beta(t)\Delta t}\,z.
 \end{align}
-The code recenters the state after each step so the sampler remains in the same centered coordinate subspace used during training.
-It also omits the final noise draw on the last step to reduce endpoint noise near $t=10^{-4}$.
+We recenter the state after each step so the sampler remains in the same centered coordinate subspace used during training.
+We also omit the final noise draw on the last step to reduce endpoint noise near $t=10^{-4}$.
 
 \clearpage
 \bibliographystyle{apsrev4-2}
