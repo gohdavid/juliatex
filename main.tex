@@ -19,9 +19,9 @@
 
 \begin{abstract}
 Equilibrium structural ensembles describe which molecular conformations occur but do not directly provide the forces needed to simulate motion.
-Statistical mechanics connects these views: gradients of the equilibrium log density determine conservative force information.
+At equilibrium, the probability of a conformation defines an effective energy, $U(x)=-k_B T\log p_{\mathrm{eq}}(x)$; differentiating that energy with respect to coordinates gives the conservative force.
 We study this idea in controlled Rouse-chain polymer systems where the true equilibrium score is known analytically, with protein dynamics as the motivating application.
-We test whether continuous normalizing flows (CNFs) and diffusion models can recover both conformational statistics and force information from static samples alone.
+We test whether continuous normalizing flows (CNFs) and diffusion models can recover both conformational statistics and the forces implied by the equilibrium density from static samples alone.
 Both model classes improve over Gaussian baselines, but score recovery is most reliable for simple harmonic chains and degrades when ring closure or nonlocal contacts shape the ensemble.
 These benchmarks clarify what equilibrium-density learning can and cannot yet provide for molecular dynamics inference.
 \end{abstract}
@@ -30,23 +30,44 @@ These benchmarks clarify what equilibrium-density learning can and cannot yet pr
 
 \section{Motivation}
 
-Protein conformational dynamics motivate this work.
-Experimental and computational methods can provide structural ensembles, but those ensembles typically lack the time ordering, transition paths, or effective force fields needed to reconstruct dynamics \cite{noe2019,arts2023}.
-Statistical mechanics offers a route from equilibrium density to forces: in a canonical ensemble the conformational density is proportional to $\exp[-U(x)/(k_B T)]$, so gradients of the log density carry force information.
-Additional dynamical assumptions then determine how to use that information for trajectory simulation.
+Protein function often depends on transitions between conformational states, not just on the geometry of one static structure.
+The standard computational tool for studying these motions is molecular dynamics (MD), which integrates equations of motion using a potential energy model or force field \cite{hollingsworth2018}.
+Those force fields are highly useful but still empirical: bonded terms, electrostatics, and van der Waals interactions are parameterized approximations whose choices can affect simulated protein behavior \cite{huang2013,maier2015}.
+On the experimental side, most proteins are represented by one or a few equilibrium structures, often from X-ray crystallography, rather than by a dense sample of the equilibrium distribution.
+Methods such as NMR and heterogeneous cryo-EM can provide richer conformational ensembles, and future cryo-EM reconstruction methods may make this setting more realistic, but these data still generally lack time ordering, velocities, and per-conformation forces \cite{zhong2021}.
 
-Directly testing this idea on proteins is difficult because the equilibrium distribution is only partially observed and no clean score or force-field target is available.
-We therefore study controlled Brownian-dynamics systems based on Rouse-chain polymers \cite{rouse1953}.
-These are not protein models; they are tractable benchmarks where the simulator provides both equilibrium samples and the corresponding analytic score field.
-They let us test whether continuous normalizing flows and diffusion models learn both the equilibrium distribution and the local log-density gradients that, in this Brownian setting, govern overdamped dynamics \cite{grathwohl2018,arts2023}.
+Equilibrium statistical mechanics suggests a limited but useful bridge between these two views.
+For a canonical ensemble with configurational density $p_{\mathrm{eq}}(\vec{q})$,
+\begin{equation}
+    p_{\mathrm{eq}}(\vec{q})
+    =
+    \frac{1}{Z}
+    \exp
+    \left[
+        -\frac{V(\vec{q})}{k_B T}
+    \right],
+\end{equation}
+so knowing the equilibrium density is equivalent to knowing the potential energy up to an additive constant.
+Taking a gradient gives
+\begin{equation}
+    -\nabla_{\vec{q}}V(\vec{q})
+    =
+    k_B T\nabla_{\vec{q}}\log p_{\mathrm{eq}}(\vec{q}),
+\end{equation}
+which means an accurate equilibrium density model can, in principle, provide the conservative force.
+This relation does not by itself reconstruct full molecular dynamics: a trajectory model still requires dynamical assumptions such as masses or mobilities, friction, diffusion, and the chosen level of coarse graining \cite{noe2019,arts2023}.
 
-For a configuration $x_t \in \mathbb{R}^{d \times N}$ with $N$ beads in $d$ spatial dimensions, we simulate the dynamics
+Directly validating this idea on proteins is therefore data-limited: for most proteins we do not yet have enough independent equilibrium conformations to learn the full distribution, even though richer cryo-EM-style ensemble measurements may improve this in the future.
+We instead use controlled Brownian-dynamics polymers based on Rouse chains because their dynamics have known analytic expressions \cite{rouse1953}.
+Our hypothesis is that if a generative model learns the equilibrium distribution from static snapshots, then it should recover not only conformational statistics but also the local scores that determine the Brownian drift.
+We test this hypothesis with continuous normalizing flows and diffusion models \cite{grathwohl2018,arts2023}.
+
+For a configuration $x_t \in \mathbb{R}^{d \times N}$ with $N$ beads in $d$ spatial dimensions, the Brownian dynamics are
 \begin{equation}
     dX_t = F(X_t)\,dt + \sqrt{2D}\,dW_t,
 \end{equation}
-where $D$ denotes the diffusion coefficient, $W_t$ denotes standard Brownian motion, and $F(x)$ denotes the deterministic drift.
-We set $D=0.25$ in the base Rouse simulations.
-Adjacent harmonic springs generate the drift,
+where $D$ is the diffusion coefficient, $W_t$ is standard Brownian motion, and $F(x)$ is the deterministic drift.
+In the base Rouse simulations, $D=0.25$ and adjacent harmonic springs generate
 \begin{equation}
     F_i(x)
     =
@@ -56,19 +77,17 @@ Adjacent harmonic springs generate the drift,
     \right),
 \end{equation}
 with endpoint modifications.
-The simulator also supports nonideal terms: Lennard-Jones interactions, excluded volume, confinement, hairpin contacts, and ring closure.
-
-At equilibrium, the stationary density score determines the drift:
+In the centered coordinate subspace used for training, detailed balance gives
 \begin{equation}
     F(x) = D \nabla_x \log p_{\mathrm{eq}}(x).
 \end{equation}
-We use this relation as a test: if a model learns $p_{\mathrm{eq}}(x)$, its score should match the Brownian drift divided by $D$.
-For the base setting this gives the score target $F(x)/0.25 = 4F(x)$.
-We learn equilibrium coordinate distributions from static snapshots and then compare both generated samples and learned score fields against known Rouse-chain quantities.
+Thus the score implied by a learned density can be checked directly against the analytic target $F(x)/D$; for the base setting this is $F(x)/0.25=4F(x)$.
+This gives a direct test of the hypothesis: after training only on equilibrium coordinate snapshots, we can compare generated samples with the known equilibrium structure and compare learned score fields with the analytic Brownian drift.
+We perform this test first for the base Rouse chain and then for more structured variants with Lennard-Jones interactions, excluded volume, confinement, hairpin contacts, and ring closure.
 
 \section{Overdamped Langevin and Detailed Balance}
 
-We use overdamped Brownian dynamics rather than inertial molecular dynamics.
+As a synthetic test case, we use overdamped Brownian dynamics rather than full inertial Langevin dynamics.
 Solvent friction damps momenta faster than the configurational motion we model, so the state is the bead-coordinate vector $x$ rather than a position-momentum pair.
 For a physical coordinate vector $\vec{q}$ with potential energy $V(\vec{q})$, the overdamped Langevin SDE has the form
 \begin{equation}
@@ -140,7 +159,7 @@ Equivalently,
     \frac{F(x)}{D}.
 \end{equation}
 We use this detailed-balance relation as the score target throughout.
-Any model that evaluates or differentiates the equilibrium log density can be tested against the analytic drift supplied by the simulator \cite{noe2019,arts2023}.
+Any model that evaluates or differentiates the equilibrium log density can be tested against the analytic drift defined by the Brownian dynamics model \cite{noe2019,arts2023}.
 
 \section{Data}
 
@@ -151,6 +170,8 @@ The training data consist of centered bead configurations from simulated Rouse t
 where $B$ denotes the number of frames.
 We simulate two-dimensional chains with $N=32$ beads.
 The base simulation uses $D=0.25$, unit bond length, and $k_\xi=3.0$; the ring-closure and hairpin configurations inherit these constants and add structural constraints.
+We express measurement cadence in units of the slowest Rouse relaxation time $\tau_R$.
+After a $20\tau_R$ burn-in, we save configurations every $0.1\tau_R$ through $99.9\tau_R$.
 We center each frame before training so that the models learn internal conformations rather than global translation.
 
 \section{Time Conventions}
@@ -163,7 +184,7 @@ The diffusion model noises data from $\tau=0$ toward Gaussian noise at $\tau=1$ 
 
 \section{Synthetic Systems}
 
-We study three controlled synthetic systems: a base Rouse chain, a ring-closure Rouse chain, and a hairpin-stabilized Rouse chain \cite{rouse1953,honda2004,satoh2006}.
+We study three controlled synthetic systems based on Rouse-chain dynamics: a base Rouse chain, a ring-closure Rouse chain, and a hairpin-stabilized Rouse chain \cite{rouse1953}.
 The base system tests whether a model can learn the equilibrium distribution and score of a flexible harmonic polymer.
 The ring-closure system adds a single terminal bond, changing the chain topology while keeping the force law nearly identical.
 The hairpin system adds attractive nonlocal contacts and repulsive excluded volume.
@@ -193,7 +214,7 @@ The base Rouse chain provides a clean baseline: adjacent harmonic springs genera
 
 \subsection*{Nonideal Interactions}
 
-The simulator supports several nonideal potentials.
+The Brownian dynamics model also includes several nonideal potentials.
 The nonbonded Lennard-Jones potential has the form
 \begin{equation}
     U_{\mathrm{LJ}}(r)
@@ -552,7 +573,7 @@ During training, we clip parameter gradients elementwise to magnitude $1$.
 We evaluate both sample-level statistics and score-field diagnostics.
 For sample quality, we compare average pairwise distances between generated and training configurations.
 
-The simulator provides analytic force targets for all Rouse systems.
+The Brownian dynamics model gives analytic force targets for all Rouse systems.
 We obtain the CNF score by differentiating the learned log likelihood,
 \begin{equation}
     \nabla_x \log p_\theta(x),
@@ -762,7 +783,7 @@ For sample quality, we draw 1000 configurations from each model and compare pair
 For score-field accuracy, we evaluate 1000 training configurations and compare each learned score against the analytic target $F(x)/D$ using cosine similarity, MSE, and Pearson $r^2$.
 We also compare score-norm and potential-energy distributions between generated and training samples.
 
-Finally, we generate short trajectories by using learned scores as the drift in an overdamped Langevin SDE (2000 steps, $dt = 5 \times 10^{-4}$, initialized from a random training configuration) and compare against ground-truth Brownian trajectories.
+Finally, we generate trajectories by using learned scores as the drift in an overdamped Langevin SDE (2000 steps, $dt = 5 \times 10^{-4}$, initialized from a random training configuration) and compare against ground-truth Brownian trajectories.
 
 \section{Results}
 
@@ -807,7 +828,7 @@ Performance is strongest on the base Rouse chain, which has the simplest equilib
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/generations/full_generation_grid.png}
-\caption{Representative polymer conformations from the simulator and learned generative models.
+\caption{Representative polymer conformations from the Brownian dynamics simulation and learned generative models.
 Columns show the base Rouse chain, hairpin-stabilized chain, and ring-closure chain; rows show reference simulation samples, CNF samples, and diffusion samples.
 Each cell contains four centered configurations with beads colored by sequence position, making the open-chain, paired-hairpin, and closed-ring geometries visually comparable across models.}
 \label{fig:full_generation_grid}
@@ -819,6 +840,8 @@ CNF samples more closely match the training structures; for example, the CNF pro
 \subsection*{Accuracy of Learned Score Fields}
 
 Table~\ref{tab:score-agreement} summarizes score-field agreement with the analytic Brownian target across the three polymer systems.
+The CNF outperforms the diffusion model on directional score recovery in all three systems, with higher cosine similarity and Pearson $r^2$ throughout.
+It also has lower score MSE for the base and ring systems; the hairpin MSE is comparable between models, but the CNF still gives better directional alignment.
 
 %Learned score vs. ground-truth score correlation table
 \begin{table}[htbp]
@@ -872,28 +895,30 @@ CNF samples overlap the training-energy range with a slightly lower mean and bro
 \centering
 \includegraphics[width=\columnwidth]{figures/simulations/timestep_samples.png}
 \caption{Representative polymer trajectory rollouts at normalized times $t=0$ through $t=1$.
-Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the simulator trajectory, the CNF-driven trajectory, and the diffusion-driven trajectory.
+Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the reference Brownian dynamics trajectory, the CNF-driven trajectory, and the diffusion-driven trajectory.
 The CNF rollout preserves the chain-like geometry more closely across time, while the diffusion rollout becomes more compact and tangled under the learned score field.}
 \label{fig:timestep_samples}
 \end{figure}
 
 \section{Discussion}
 
-Equilibrium structural ensembles carry recoverable force-field information, but matching the ensemble is not sufficient.
+Equilibrium structural ensembles can determine recoverable force fields, but matching the ensemble is not sufficient.
 The CNF reproduces pairwise-distance statistics more accurately than the diffusion model, especially for the base Rouse chain, and both models improve substantially over a Gaussian baseline.
 However, score recovery is a stricter test than sample quality.
-We recover scores that align well with the analytic target for the harmonic base system, but agreement drops when ring closure or nonlocal hairpin contacts shape the ensemble.
+On this stricter test, the CNF also outperforms the diffusion model in directional alignment and linear agreement across all three systems.
+We recover scores that align well with the analytic target for the harmonic base system, but agreement drops for both models when ring closure or nonlocal hairpin contacts shape the ensemble.
 This distinction matters for dynamics: a model can generate plausible conformations while producing gradients too noisy, incorrectly scaled, or locally misaligned to drive reliable trajectories.
 
 Our main limitation is that we study controlled two-dimensional polymer benchmarks, not atomistic proteins.
-We chose these systems for their analytic score targets and clear equilibrium-dynamics relationship, which let us separate density learning from force-field validation.
-Protein ensembles will introduce complications we do not address: incomplete sampling, experimental noise, hidden solvent degrees of freedom, metastable states, possible non-Markovian effects, and uncertainty in the effective diffusion tensor.
-Our trajectory rollouts are also short and rely on a simple overdamped assumption; they show that learned scores can drive a dynamics simulator but do not establish long-time kinetic accuracy or transition-rate recovery.
+An atomistic molecular-dynamics dataset would be a natural next step, but we chose Brownian Rouse systems first because they are faster to generate, easier to iterate on in Julia, and have analytic score targets.
+This lets us separate the basic density-to-force question from the additional modeling choices required for proteins.
+Protein conformational ensembles would require more careful treatment of sampling coverage, experimental noise, solvent and coarse-graining effects, metastability, and the effective dynamical model.
+Our trajectory rollouts rely on a simple overdamped assumption; they show that learned scores can drive Brownian dynamics rollouts but do not establish long-time kinetic accuracy or transition-rate recovery.
 
-Future work should make the score-learning problem more physically constrained and evaluate it through the dynamics it implies.
-Architecturally, this means enforcing relevant symmetries, stabilizing score magnitudes, and regularizing the learned energy landscape.
-Algorithmically, it means comparing likelihood training, denoising score matching, and hybrid objectives that penalize force errors when partial force labels or physics-based priors are available.
-For dynamics validation, we need to move beyond short rollouts and measure long-time stability, equilibrium preservation, and transition statistics.
+Future work should use the available physical structure more directly and evaluate learned densities through the dynamics they imply.
+The present models already include geometric inductive bias through EGNN-style coordinate updates, and the Rouse systems provide analytic force targets.
+A natural next step is therefore to compare likelihood training, denoising score matching, and hybrid objectives that use force errors as supervision or calibration when such targets are available.
+For dynamics validation, we need to move beyond representative rollouts and measure long-time stability, equilibrium preservation, and transition statistics over relaxation-time scales.
 The broader goal is to progress from these synthetic systems toward three-dimensional coarse-grained molecules and eventually protein conformational ensembles, where learned equilibrium densities could provide useful effective force fields with quantified uncertainty.
 
 We conclude that equilibrium snapshots can contain enough information to recover meaningful score fields under favorable assumptions, and generative density models provide a practical way to extract that information.
@@ -902,10 +927,10 @@ Force-field inference should ultimately be evaluated by the dynamics and forces 
 \appendix
 \clearpage
 
+\section{Boltzmann Score and Conservative Forces}
+
 Throughout the appendix, the \emph{score} of a density $p(x)$ is the gradient $\nabla_x\log p(x)$, pointing in the direction of steepest increase in log probability.
 For SDEs, $dW_t$ denotes a Brownian increment with mean zero and variance $dt$; terms proportional to $dW_t$ create fluctuations of size $\sqrt{dt}$, while drift terms proportional to $dt$ create deterministic motion.
-
-\section{Boltzmann Score and Conservative Forces}
 
 At equilibrium, an atomistic configuration $\vec{q}$ with potential energy $V(\vec{q})$ follows the Boltzmann density
 \begin{equation}
@@ -981,7 +1006,7 @@ Writing the probability current as
     -
     D\nabla_x p_{\mathrm{eq}}(x),
 \end{equation}
-Detailed balance sets $J(x)=0$ at equilibrium---a stronger condition than stationarity, which only requires $\nabla_x\cdot J(x)=0$ and permits circulating currents.
+Detailed balance sets $J(x)=0$ at equilibrium. This is stronger than stationarity, which only requires $\nabla_x\cdot J(x)=0$ and permits circulating currents.
 Our Rouse score target assumes this reversible case, so
 \begin{equation}
     F(x)p_{\mathrm{eq}}(x)
@@ -1113,7 +1138,7 @@ For a pair $(i,j)$, define
     =
     \|r_{ij}\|^2+\delta^2,
 \end{equation}
-where $\delta$ is the softening length used in the simulator.
+where $\delta$ is the softening length used in the Brownian dynamics simulation.
 Cutoffs and bonded-neighbor exclusions select which pairs contribute.
 For any active pair potential $U_{ij}(\rho_{ij})$, the pair score on bead $i$ is
 \begin{equation}
