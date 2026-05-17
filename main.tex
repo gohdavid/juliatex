@@ -10,7 +10,7 @@
 
 \begin{document}
 
-\title{Learning Equilibrium Polymer Distributions with Continuous Normalizing Flows and Diffusion Models}
+\title{Inferring Molecular Dynamics and Force Fields from Equilibrium Distributions}
 
 \author{Rachit Mukkamala, David Goh}
 \affiliation{Harvard-MIT Program in Health Sciences and Technology}
@@ -18,23 +18,28 @@
 \date{\today}
 
 \begin{abstract}
-Our long-term goal is to learn models that infer molecular trajectories from static structural samples, including protein conformational ensembles.
-We first study controlled Brownian-dynamics synthetic systems where we can evaluate the equilibrium distribution and score field directly, including base, ring-closure, and hairpin Rouse chains.
-The codebase uses Rouse-chain simulations as the main data source and compares two likelihood- or score-based models: an equivariant continuous normalizing flow (CNF) and an equivariant variance-preserving diffusion model \cite{chen2018,grathwohl2018,ho2020,song2021}.
-We train both models on centered coordinate snapshots and evaluate generated-configuration quality and agreement between learned log-density gradients and Brownian drift forces.
+Equilibrium structural ensembles describe which molecular conformations occur, but they do not directly provide the forces needed to simulate motion.
+Statistical mechanics connects these views: an equilibrium distribution defines an energy landscape, and gradients of that landscape determine conservative force information.
+We study this idea in controlled polymer toy systems before applying it to protein dynamics.
+For Rouse-chain variants, the true equilibrium score is known, letting us test whether continuous normalizing flows and diffusion models recover both conformational statistics and force information from samples alone.
+The models improve over Gaussian structural baselines, but score recovery is most reliable for simple harmonic chains and becomes harder when constraints and nonlocal contacts shape the ensemble.
+These benchmarks clarify what equilibrium-density learning can and cannot yet provide for molecular dynamics inference.
 \end{abstract}
 
 \maketitle
 
 \section{Motivation}
 
-Our long-term goal is to develop generative models that infer molecular conformational dynamics from static structural samples \cite{noe2019,arts2023}.
-This problem matters especially for proteins, where experimental methods can provide structural ensembles but often omit the time ordering or transition information needed to reconstruct dynamics directly.
-Atomistic proteins make this idea difficult to evaluate directly because experiments do not fully observe the effective dynamics or provide the correct score or force field as a clean target.
+The motivating problem is protein conformational dynamics.
+Experimental and computational methods can provide structural ensembles, but those ensembles often do not include the time ordering, transition paths, or effective force fields needed to reconstruct dynamics directly \cite{noe2019,arts2023}.
+If a model can learn the equilibrium density of molecular conformations, then statistical mechanics suggests a route from that density to an effective energy landscape and conservative force field.
+For example, in a canonical ensemble the conformational density is proportional to $\exp[-U(x)/(k_B T)]$, so gradients of the learned log density carry force information.
+Additional dynamical assumptions then determine how that force information is used to simulate trajectories.
 
-We therefore begin with controlled Brownian-dynamics synthetic systems based on Rouse-chain polymer dynamics \cite{rouse1953}.
-In this setting, a known stochastic process generates equilibrium samples, and the simulator provides the corresponding score field for evaluation.
-This setting lets us test whether continuous normalizing flows and diffusion models learn both the equilibrium distribution of configurations and the local log-density gradients that govern overdamped dynamics \cite{grathwohl2018,arts2023}.
+Directly testing this idea on atomistic proteins is difficult because the relevant equilibrium distribution is only partially observed and the true effective score or force field is not available as a clean target.
+We therefore study controlled Brownian-dynamics synthetic systems based on Rouse-chain polymer dynamics \cite{rouse1953}.
+These systems are not protein models; they are tractable polymer benchmarks where a known stochastic process generates equilibrium samples and the simulator provides the corresponding score field for evaluation.
+This lets us test whether continuous normalizing flows and diffusion models learn both the equilibrium distribution of configurations and the local log-density gradients that, in this Brownian toy setting, govern overdamped dynamics \cite{grathwohl2018,arts2023}.
 
 For a configuration $x_t \in \mathbb{R}^{d \times N}$ with $N$ beads in $d$ spatial dimensions, we simulate the dynamics
 \begin{equation}
@@ -636,7 +641,7 @@ CNF &
 
 \section{Julia and SciML Implementation}
 
-We build the implementation around the SciML ecosystem \cite{rackauckas2017}.
+We build the implementation in Julia and around the SciML ecosystem \cite{bezanson2017,rackauckas2017,rackauckas2020universal}.
 This choice does more than provide convenience: the project needs stochastic simulation, neural ODE likelihoods, differentiable ODE solves, GPU-compatible array code, and several trace-estimation strategies in the same code path.
 Julia makes these pieces composable without translating between separate simulation, autodiff, and machine-learning frameworks.
 
@@ -868,7 +873,9 @@ Diffusion & 3.868 & 0.058 \\
 CNF & \textbf{3.469} & \textbf{0.088} \\
 \hline
 \end{tabular}
-\caption{Placeholder Caption for pairwise distance distributional metrics table.}
+\caption{Pairwise-distance distribution metrics for generated samples from each model and polymer system.
+Lower energy and MMD values indicate closer agreement between generated conformations and the training ensemble.
+Both learned models improve substantially over centered Gaussian samples, with the CNF giving the strongest structural match in these runs.}
 \end{table}
 
 
@@ -876,7 +883,9 @@ CNF & \textbf{3.469} & \textbf{0.088} \\
 \begin{figure}
 \centering
 \includegraphics[width=\columnwidth]{figures/generations/full_generation_grid.png}
-\caption{Placeholder caption for generated sample grid.}
+\caption{Representative generated and reference polymer conformations.
+Columns show the base Rouse, hairpin, and ring systems; rows show simulation samples, CNF samples, and diffusion samples.
+The grid provides a qualitative comparison of whether each learned model reproduces the geometric structure of the target ensemble.}
 \label{fig:full_generation_grid}
 \end{figure}
 
@@ -900,22 +909,26 @@ Diffusion & 0.372 & 57.81 & 0.109 \\
 CNF & \textbf{0.705} & \textbf{39.72} & \textbf{0.445} \\
 \hline
 \end{tabular}
-\caption{Placeholder caption for learned score vs. ground-truth score correlation table.}
+\caption{Agreement between learned model scores and analytic Brownian score targets.
+Cosine similarity measures directional alignment, MSE measures absolute score error, and Pearson $r^2$ measures linear agreement across score components.
+The CNF score is most accurate for the harmonic base Rouse chain, while both models degrade on the more constrained hairpin and ring systems.}
 \end{table}
 
 \begin{figure}
 \centering
-\includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
-\includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
-\caption{Placeholder caption for score norm distributions on Rouse base polymers only.}
+\includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
+\includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
+\caption{Score-norm distributions for base Rouse generated samples.
+The panels compare CNF and diffusion score magnitudes on generated configurations against the corresponding training-sample distribution, testing whether each model recovers the scale of the equilibrium force field as well as its direction.}
 \label{fig:score_norm_density}
 \end{figure}
 
 \begin{figure}
 \centering
-\includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
-\includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
-\caption{Placeholder caption for potential energy distributions on Rouse base polymers only.}
+\includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
+\includegraphics[width=0.49\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
+\caption{Potential-energy distributions for base Rouse generated samples.
+The panels compare the simulator energy evaluated on CNF and diffusion samples with the energy distribution of training configurations, providing an independent check of whether generated conformations lie in typical equilibrium regions.}
 \label{fig:potential_energy_density}
 \end{figure}
 
