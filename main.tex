@@ -21,7 +21,7 @@
 Equilibrium structural ensembles describe which molecular conformations occur but do not directly provide the forces needed to simulate motion.
 At equilibrium, the probability of a conformation defines an effective energy, $U(x)=-k_B T\log p_{\mathrm{eq}}(x)$; differentiating that energy with respect to coordinates gives the conservative force.
 We study this idea in controlled Rouse-chain polymer systems where the true equilibrium score is known analytically, with protein dynamics as the motivating application.
-We test whether continuous normalizing flows (CNFs) and diffusion models can recover both conformational statistics and the forces implied by the equilibrium density from static samples alone.
+We test whether continuous normalizing flows (CNFs) and denoising diffusion models can recover both conformational statistics and the forces implied by the equilibrium density from static samples alone.
 Both model classes improve over Gaussian baselines, but score recovery is most reliable for simple harmonic chains and degrades when ring closure or nonlocal contacts shape the ensemble.
 These benchmarks clarify what equilibrium-density learning can and cannot yet provide for molecular dynamics inference.
 \end{abstract}
@@ -60,36 +60,16 @@ This relation does not by itself reconstruct full molecular dynamics: a trajecto
 Directly validating this idea on proteins is therefore data-limited: for most proteins we do not yet have enough independent equilibrium conformations to learn the full distribution, even though richer cryo-EM-style ensemble measurements may improve this in the future.
 We instead use controlled Brownian-dynamics polymers based on Rouse chains because their dynamics have known analytic expressions \cite{rouse1953}.
 Our hypothesis is that if a generative model learns the equilibrium distribution from static snapshots, then it should recover not only conformational statistics but also the local scores that determine the Brownian drift.
-We test this hypothesis with continuous normalizing flows and diffusion models \cite{grathwohl2018,arts2023}.
+We test this hypothesis with continuous normalizing flows and denoising diffusion models \cite{grathwohl2018,arts2023}.
+The Brownian dynamics construction below gives an analytic equilibrium score target, so we can compare generated samples with known equilibrium structure and compare learned score fields with the analytic drift implied by the dynamics.
 
-For a configuration $x_t \in \mathbb{R}^{d \times N}$ with $N$ beads in $d$ spatial dimensions, the Brownian dynamics are
-\begin{equation}
-    dX_t = F(X_t)\,dt + \sqrt{2D}\,dW_t,
-\end{equation}
-where $D$ is the diffusion coefficient, $W_t$ is standard Brownian motion, and $F(x)$ is the deterministic drift.
-In the base Rouse simulations, $D=0.25$ and adjacent harmonic springs generate
-\begin{equation}
-    F_i(x)
-    =
-    k_{\xi}
-    \left(
-        x_{i+1} - 2x_i + x_{i-1}
-    \right),
-\end{equation}
-with endpoint modifications.
-In the centered coordinate subspace used for training, detailed balance gives
-\begin{equation}
-    F(x) = D \nabla_x \log p_{\mathrm{eq}}(x).
-\end{equation}
-Thus the score implied by a learned density can be checked directly against the analytic target $F(x)/D$; for the base setting this is $F(x)/0.25=4F(x)$.
-This gives a direct test of the hypothesis: after training only on equilibrium coordinate snapshots, we can compare generated samples with the known equilibrium structure and compare learned score fields with the analytic Brownian drift.
-We perform this test first for the base Rouse chain and then for more structured variants with Lennard-Jones interactions, excluded volume, confinement, hairpin contacts, and ring closure.
+\section{Brownian Dynamics and Detailed Balance}
 
-\section{Overdamped Langevin and Detailed Balance}
-
-As a synthetic test case, we use overdamped Brownian dynamics rather than full inertial Langevin dynamics.
-Solvent friction damps momenta faster than the configurational motion we model, so the state is the bead-coordinate vector $x$ rather than a position-momentum pair.
-For a physical coordinate vector $\vec{q}$ with potential energy $V(\vec{q})$, the overdamped Langevin SDE has the form
+Hamiltonian dynamics evolves positions and momenta deterministically under a Hamiltonian energy; without thermostats or external forcing, it conserves that energy.
+Full inertial Langevin dynamics also keeps momenta, but adds solvent friction and thermal noise to the momentum equation.
+Brownian dynamics is the overdamped, high-friction limit used here: momenta are eliminated from the state, and bead coordinates follow a first-order stochastic equation in configuration space.
+Thus the Brownian dynamics used in this paper are overdamped Langevin dynamics for coordinates, not Hamiltonian dynamics or full inertial Langevin dynamics.
+For a physical coordinate vector $\vec{q}$ with potential energy $V(\vec{q})$, the Brownian, or overdamped Langevin, SDE has the form
 \begin{equation}
     d\vec{q}_t
     =
@@ -158,8 +138,26 @@ Equivalently,
     =
     \frac{F(x)}{D}.
 \end{equation}
-We use this detailed-balance relation as the score target throughout.
-Any model that evaluates or differentiates the equilibrium log density can be tested against the analytic drift defined by the Brownian dynamics model \cite{noe2019,arts2023}.
+For a Rouse configuration $x_t \in \mathbb{R}^{d \times N}$ with $N$ beads in $d$ spatial dimensions, the Brownian dynamics are
+\begin{equation}
+    dX_t = F(X_t)\,dt + \sqrt{2D}\,dW_t,
+\end{equation}
+where $D$ is the diffusion coefficient, $W_t$ is standard Brownian motion, and $F(x)$ is the deterministic drift.
+In the base Rouse simulations, $D=0.25$ and adjacent harmonic springs generate
+\begin{equation}
+    F_i(x)
+    =
+    k_{\xi}
+    \left(
+        x_{i+1} - 2x_i + x_{i-1}
+    \right),
+\end{equation}
+with endpoint modifications.
+We use the detailed-balance relation as the score target throughout.
+In the centered coordinate subspace used for training, the target is $F(x)/D$; for the base setting this is $F(x)/0.25=4F(x)$.
+This gives a direct test of the hypothesis: after training only on equilibrium coordinate snapshots, we can compare generated samples with the known equilibrium structure and compare learned score fields with the analytic Brownian drift.
+We perform this test first for the base Rouse chain and then for more structured variants with Lennard-Jones interactions, excluded volume, confinement, hairpin contacts, and ring closure.
+Any model that evaluates or differentiates the equilibrium log density can therefore be tested against the analytic drift defined by the Brownian dynamics model \cite{noe2019,arts2023}.
 
 \section{Data}
 
@@ -171,7 +169,7 @@ where $B$ denotes the number of frames.
 We simulate two-dimensional chains with $N=32$ beads.
 The base simulation uses $D=0.25$, unit bond length, and $k_\xi=3.0$; the ring-closure and hairpin configurations inherit these constants and add structural constraints.
 We express measurement cadence in units of the slowest Rouse relaxation time $\tau_R$.
-After a $20\tau_R$ burn-in, we save configurations every $0.1\tau_R$ through $99.9\tau_R$.
+After a $20\tau_R$ burn-in, we save configurations every $0.1\tau_R$ through $100\tau_R$.
 We center each frame before training so that the models learn internal conformations rather than global translation.
 
 \section{Time Conventions}
@@ -180,7 +178,7 @@ We use two distinct time variables.
 Physical simulation time $t$ indexes the Brownian dynamics and all generated polymer trajectories.
 Model pseudotime $\tau \in [0,1]$ indexes the generative models: $\tau=0$ is the data distribution and $\tau=1$ is the standard normal base.
 The CNF integrates from $\tau=0$ to $\tau=1$ for likelihood evaluation and reverses for sampling.
-The diffusion model noises data from $\tau=0$ toward Gaussian noise at $\tau=1$ and denoises in the reverse direction.
+The denoising diffusion model adds noise to data from $\tau=0$ toward Gaussian noise at $\tau=1$ and denoises in the reverse direction.
 
 \section{Synthetic Systems}
 
@@ -324,7 +322,7 @@ Let $z(\tau)$ denote the state at pseudotime $\tau \in [0,1]$:
 \end{equation}
 Here $\tau$ is a generative-model coordinate, not physical Brownian time.
 The CNF integrates from data to noise for likelihood evaluation and from noise to data for sampling.
-Unlike the diffusion model, which fixes the forward noising SDE and learns only the reverse-time score, the CNF learns the continuous transport velocity $f_\theta$ directly.
+Unlike the denoising diffusion model, which fixes the forward noising SDE and learns only the reverse-time score, the CNF learns the continuous transport velocity $f_\theta$ directly.
 
 The log-density evolves according to the instantaneous change-of-variables formula:
 \begin{equation}
@@ -468,9 +466,9 @@ The adjoint dynamics satisfy
 \end{align}
 We delegate the differentiable ODE solves and adjoint machinery to the SciML stack.
 
-\section{Variance-Preserving Diffusion Model}
+\section{Variance-Preserving Denoising Diffusion Model}
 
-The diffusion model learns the score field directly \cite{ho2020,song2021}.
+The denoising diffusion model learns the score field directly \cite{ho2020,song2021}.
 We define a continuous-time variance-preserving (VP) forward SDE
 \begin{equation}
     dx_t
@@ -537,7 +535,7 @@ We minimize the weighted denoising score-matching objective \cite{ho2020,song202
     \right].
 \end{equation}
 
-The diffusion score model uses the same EGNN-style architecture with learned node embeddings, sequence-distance and radial pair features, and pairwise coordinate updates.
+The denoising diffusion model uses the same EGNN-style architecture with learned node embeddings, sequence-distance and radial pair features, and pairwise coordinate updates.
 Although the per-sample denoising target is conditional, the regression optimum is the marginal VP score $\nabla_x \log p_t(x)$.
 We center the network output and interpret it as this marginal score.
 
@@ -579,16 +577,16 @@ We obtain the CNF score by differentiating the learned log likelihood,
 \begin{equation}
     \nabla_x \log p_\theta(x),
 \end{equation}
-For diffusion diagnostics, we evaluate the learned score on centered clean configurations at
+For denoising diffusion diagnostics, we evaluate the learned score on centered clean configurations at
 \begin{equation}
     t_{\mathrm{eval}} = 10^{-4}.
 \end{equation}
 This is the same terminal diffusion time used by the reverse sampler.
 The network output is already scaled as a score because the denoising target is $-\epsilon/\sigma(t)$; we do not multiply it by $\sigma(t)$ before comparison.
 For the VP schedule used here, $\sigma(t_{\mathrm{eval}})\approx 3.2\times 10^{-3}$.
-Strictly, the diffusion model provides $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$, the score of the slightly noised VP marginal, not the exact data score $\nabla_x\log p_0(x)$.
+Strictly, the denoising diffusion model provides $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$, the score of the slightly noised VP marginal, not the exact data score $\nabla_x\log p_0(x)$.
 We compare it to $F(x)/D$ as a small-time approximation and avoid $t=0$ because the conditional VP score target diverges as $\sigma(t)\to0$.
-Together with the CNF score, this diffusion score is compared against the known Brownian target $F(x)/D$ \cite{arts2023}.
+Together with the CNF score, this denoising diffusion score is compared against the known Brownian target $F(x)/D$ \cite{arts2023}.
 This benchmark is stricter than visual or distributional sample comparison: the model must recover the local equilibrium score, not only generate plausible conformations.
 
 The Gaussian baseline samples centered independent noise and serves only as a structural reference; it does not define a learned force field.
@@ -784,10 +782,10 @@ We do not yet apply it to atomistic proteins; we validate the score-learning com
 
 \section{Experimental Setup}
 
-We trained CNF and diffusion models on the base Rouse, hairpin, and ring datasets.
+We trained CNF and denoising diffusion models on the base Rouse, hairpin, and ring datasets.
 Both models use a 3-layer EGNN architecture with 6-layer MLPs of 256 hidden units for edge and node updates.
-We trained the CNF for 60 epochs (batch size 128, Adam, learning rate $2 \times 10^{-3}$) and the diffusion model for 80 epochs (batch size 128, Adam, learning rate $5 \times 10^{-5}$).
-For the reported checkpoints, the monitored training losses for both model classes had plateaued by the end of training, so the comparison is not based on an obviously unconverged diffusion run.
+We trained the CNF for 60 epochs (batch size 128, Adam, learning rate $2 \times 10^{-3}$) and the denoising diffusion model for 80 epochs (batch size 128, Adam, learning rate $5 \times 10^{-5}$).
+For the reported checkpoints, the monitored training losses for both model classes had plateaued by the end of training, so the comparison is not based on an obviously unconverged denoising diffusion run.
 
 Across all datasets, we evaluate whether the trained models can generate samples and recover the ground-truth polymer score field.
 For sample generation, we draw 1000 polymer configurations from each model, then compare the generated and training pairwise-distance distributions using maximum mean discrepancy (MMD) and energy distance.
@@ -814,17 +812,17 @@ Table~\ref{tab:pairwise-metrics} summarizes the results.
 \hline
 \textbf{Base Rouse} & & \\
 Gaussian Null & 11.89 & 0.165 \\
-Diffusion & 0.218 & 0.004 \\
+Denoising diffusion & 0.218 & 0.004 \\
 CNF & \textbf{0.100} & \textbf{0.002} \\
 \hline
 \textbf{Hairpin} & & \\
 Gaussian Null & 48.10 & 0.511 \\
-Diffusion & 3.847 & 0.122 \\
+Denoising diffusion & 3.847 & 0.122 \\
 CNF & \textbf{2.388} & \textbf{0.047} \\
 \hline
 \textbf{Ring} & & \\
 Gaussian Null & 29.13 & 0.320 \\
-Diffusion & 3.868 & 0.058 \\
+Denoising diffusion & 3.868 & 0.058 \\
 CNF & \textbf{3.469} & \textbf{0.088} \\
 \hline
 \end{tabular}
@@ -833,23 +831,23 @@ Lower energy and MMD values indicate closer agreement between generated conforma
 \label{tab:pairwise-metrics}
 \end{table}
 
-Both learned models substantially outperform the Gaussian baseline, and the CNF achieves lower MMD and energy distance than the diffusion model across all three datasets.
+Both learned models substantially outperform the Gaussian baseline, and the CNF achieves lower MMD and energy distance than the denoising diffusion model across all three datasets.
 Performance is strongest on the base Rouse chain, which has the simplest equilibrium distribution, and degrades on the hairpin and ring systems where nonlocal interactions shape the ensemble.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/generations/full_generation_grid.png}
-\caption{Comparison of generated polymer conformations from the ground-truth simulator, the trained CNF model, and the trained diffusion models across the Rouse Base, hairpin, and ring polymer datasets.
+\caption{Comparison of generated polymer conformations from the reference Brownian dynamics simulation, the trained CNF model, and the trained denoising diffusion model across the Rouse Base, hairpin, and ring polymer datasets.
 Four random samples are shown for each model and dataset.}
 \label{fig:full_generation_grid}
 \end{figure}
 
 Figure~\ref{fig:full_generation_grid} illustrates this gap visually.
-CNF samples more closely match the training structures; for example, the CNF produces clearer hairpin-like conformations, whereas diffusion samples show jagged, spiky geometries.
+CNF samples more closely match the training structures; for example, the CNF produces clearer hairpin-like conformations, whereas denoising diffusion samples show jagged, spiky geometries.
 
 \subsection*{Accuracy of Learned Score Fields}
 
-In order for the CNF and diffusion models to be useful for trajectory inference, they must not only generate realistic samples but also learn accurate score fields that match the ground-truth scores derived from the Brownian polymer dynamics.
+In order for the CNF and denoising diffusion models to be useful for trajectory inference, they must not only generate realistic samples but also learn accurate score fields that match the ground-truth scores derived from the Brownian polymer dynamics.
 To evaluate this, we sampled 1000 configurations from the training data for each dataset (Base, Hairpin, Ring) and computed the model-predicted score (the gradient of the log density) at each configuration.
 We then compared these model-predicted scores against the known Brownian score targets, which are given by the physical force field divided by the diffusion coefficient, $F(x)/D$. The results are summarized in Table 2.
 \begin{table}[htbp]
@@ -859,15 +857,15 @@ We then compared these model-predicted scores against the known Brownian score t
 \textbf{Model} & \textbf{Cosine Sim} & \textbf{RMSE} & \textbf{Pearson $r^2$} \\
 \hline
 \textbf{Base Rouse} & & & \\
-Diffusion & 0.633 & 3.760 & 0.401 \\
+Denoising diffusion & 0.633 & 3.760 & 0.401 \\
 CNF & \textbf{0.987} & \textbf{0.879} & \textbf{0.974} \\
 \hline
 \textbf{Hairpin} & & & \\
-Diffusion & 0.250 & \textbf{13.31} & 0.045 \\
+Denoising diffusion & 0.250 & \textbf{13.31} & 0.045 \\
 CNF & \textbf{0.512} & 13.45 & \textbf{0.228} \\
 \hline
 \textbf{Ring} & & & \\
-Diffusion & 0.372 & 7.603 & 0.109 \\
+Denoising diffusion & 0.372 & 7.603 & 0.109 \\
 CNF & \textbf{0.705} & \textbf{6.302} & \textbf{0.445} \\
 \hline
 \end{tabular}
@@ -876,7 +874,7 @@ Cosine similarity measures directional alignment (higher is better), RMSE measur
 \label{tab:score-agreement}
 \end{table}
 
-Across all datasets, the CNF model achieved higher cosine similarity and Pearson $r^2$ values than the diffusion model, indicating better directional and linear agreement with the Brownian score target.
+Across all datasets, the CNF model achieved higher cosine similarity and Pearson $r^2$ values than the denoising diffusion model, indicating better directional and linear agreement with the Brownian score target.
 The strongest score recovery occurs on the base Rouse dataset, where the target force is a smooth linear spring force.
 Agreement drops on the hairpin and ring datasets, where the score field contains nonlocal constraints and contact forces that are absent from the base chain.
 For the hairpin, the attractive Lennard-Jones contacts and excluded-volume repulsion have steep gradients near contact.
@@ -890,22 +888,22 @@ For this and all subsequent score diagnostics, we focus on the base Rouse datase
 \centering
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_score_norm_density.png}
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_score_norm_density.png}
-\caption{Score-norm distributions for the base Rouse system, with the CNF on the left and the diffusion model on the right.
+\caption{Score-norm distributions for the base Rouse system, with the CNF on the left and the denoising diffusion model on the right.
 Solid curves show kernel-density estimates and dashed vertical lines mark the corresponding means.
 Black and blue compare physics and model score norms on training configurations, while red and green compare physics and model score norms on generated samples.}
 \label{fig:score_norm_density}
 \end{figure}
 
 In Figure 2, the CNF score-norm distributions are close to the physics score norms on both training and generated configurations.
-This indicates that, for the base Rouse system, the CNF recovers the overall scale of the Brownian score more accurately than the diffusion model.
-For the diffusion model, the predicted score norms are smaller than the physics score norms on both training and generated configurations, while generated configurations have larger physics score norms than the training data.
+This indicates that, for the base Rouse system, the CNF recovers the overall scale of the Brownian score more accurately than the denoising diffusion model.
+For the denoising diffusion model, the predicted score norms are smaller than the physics score norms on both training and generated configurations, while generated configurations have larger physics score norms than the training data.
 This is an empirical mismatch between the learned score scale and the analytic Brownian target; these diagnostics do not identify a single cause for the mismatch.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/cnf_potential_energy_density.png}
 \includegraphics[width=\columnwidth]{figures/energy_force_dist/diff_potential_energy_density.png}
-\caption{Analytic Rouse-chain potential-energy distributions for base Rouse generated samples, with the CNF on the left and the diffusion model on the right.
+\caption{Analytic Rouse-chain potential-energy distributions for base Rouse generated samples, with the CNF on the left and the denoising diffusion model on the right.
 Energies are computed from the known base Rouse spring potential, not from the learned models.
 Black curves show training configurations and blue curves show generated configurations; dashed vertical lines mark the corresponding mean energies.}
 \label{fig:potential_energy_density}
@@ -913,31 +911,31 @@ Black curves show training configurations and blue curves show generated configu
 
 We also compared the distributions of analytic Rouse-chain potential energies for generated samples from each model against the training data.
 As shown in Figure 3, the CNF-generated samples have a potential energy distribution that closely matches the training data,
-while the diffusion-generated samples have a potential energy distribution that is shifted towards higher energies compared to the training data.
-This shows that the CNF samples stay closer to the base Rouse equilibrium energy range, whereas the diffusion samples are shifted toward higher-energy conformations.
+while samples from the denoising diffusion model have a potential energy distribution that is shifted towards higher energies compared to the training data.
+This shows that the CNF samples stay closer to the base Rouse equilibrium energy range, whereas samples from the denoising diffusion model are shifted toward higher-energy conformations.
 
 \subsection*{Model-Based Brownian Simulations}
 
-Finally, we ran model-based simulations by integrating the learned CNF and diffusion score fields forward in physical Brownian time, starting from a configuration randomly sampled from the training data.
+Finally, we ran model-based simulations by integrating the learned CNF and denoising diffusion model score fields forward in physical Brownian time, starting from a configuration randomly sampled from the training data.
 At each step, the trained model provides the score at the current configuration, and this model-derived score is used as the drift term in the overdamped SDE.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/simulations/timestep_samples.png}
 \caption{Representative polymer model-based simulations at normalized times $t=0$ through $t=1$.
-Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the reference Brownian dynamics simulation, the CNF score-driven simulation, and the diffusion score-driven simulation.}
+Rows show snapshots at $t=0,0.25,0.50,0.75,$ and $1.00$; columns compare the reference Brownian dynamics simulation, the CNF score-driven simulation, and the denoising diffusion model score-driven simulation.}
 \label{fig:timestep_samples}
 \end{figure}
 
 Visually, the CNF score-driven simulation preserves the chain-like geometry more closely across time,
-while the diffusion score-driven simulation becomes more compact, tangled, and "jagged" under the learned score field.
-For diffusion score-driven simulations, evaluating the learned score at larger diffusion-time values can produce high-energy configurations, suggesting that the score-evaluation time strongly affects simulation stability.
+while the denoising diffusion model score-driven simulation becomes more compact, tangled, and "jagged" under the learned score field.
+For denoising diffusion model score-driven simulations, evaluating the learned score at larger diffusion-time values can produce high-energy configurations, suggesting that the score-evaluation time strongly affects simulation stability.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/simulations/CNF_polymer_energy_overlay.jpeg}
 \includegraphics[width=\columnwidth]{figures/simulations/diffusion_polymer_energy_overlay.png}
-\caption{Analytic Rouse-chain potential energy for conformations generated by CNF score-driven model-based simulations (top) and diffusion score-driven model-based simulations (bottom).
+\caption{Analytic Rouse-chain potential energy for conformations generated by CNF score-driven model-based simulations (top) and denoising diffusion model score-driven simulations (bottom).
 Energies are computed from the known base Rouse spring potential.
 Energy distribution for ground-truth Brownian trajectories is shown in gray, while energy distribution for model-based simulations is shown in blue.}
 \label{fig:traj_potential_energy_density}
@@ -945,18 +943,18 @@ Energy distribution for ground-truth Brownian trajectories is shown in gray, whi
 
 This observation is supported by the potential energy distributions for the model-based simulations shown in Figure 4.
 The potential energies for conformations generated by the CNF score-driven simulations stay within the bounds of the training data energy distribution.
-In contrast, the potential energies for conformations generated by the diffusion score-driven simulations are significantly higher than the training data energy distribution, showing that these model-based simulations leave the typical equilibrium-energy range.
+In contrast, the potential energies for conformations generated by the denoising diffusion model score-driven simulations are significantly higher than the training data energy distribution, showing that these model-based simulations leave the typical equilibrium-energy range.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{figures/simulations/cnf_traj_pairwise_dist.jpeg}
 \includegraphics[width=\columnwidth]{figures/simulations/diffusion_traj_pairwise_dist.png}
-\caption{Pairwise distances for conformations generated by CNF score-driven model-based simulations (top) and diffusion score-driven model-based simulations (bottom).
+\caption{Pairwise distances for conformations generated by CNF score-driven model-based simulations (top) and denoising diffusion model score-driven simulations (bottom).
 Pairwise distance distribution for ground-truth Brownian trajectories is shown in gray, while pairwise-distance distribution for model-based simulations is shown in blue.}
 \label{fig:traj_pairwise_distance_density}
 \end{figure}
 
-Although diffusion score-driven simulations show a significant deviation in potential energy and conformational shape from the training data,
+Although denoising diffusion model score-driven simulations show a significant deviation in potential energy and conformational shape from the training data,
 their pairwise distance distribution is consistent with the training data distribution.
 This suggests that the pairwise distance distribution is not sufficient for evaluating model-based simulations, since it can remain close to the training distribution even when the generated conformations have high potential energy.
 In contrast, the potential energy distribution exposes this energy mismatch, while the CNF score-driven simulations maintain a potential energy distribution closer to the training data.
@@ -964,13 +962,13 @@ In contrast, the potential energy distribution exposes this energy mismatch, whi
 \section{Discussion}
 
 Equilibrium structural ensembles can determine recoverable force fields, but matching the ensemble is not sufficient.
-The CNF reproduces pairwise-distance statistics more accurately than the diffusion model, especially for the base Rouse chain, and both models improve substantially over a Gaussian baseline.
+The CNF reproduces pairwise-distance statistics more accurately than the denoising diffusion model, especially for the base Rouse chain, and both models improve substantially over a Gaussian baseline.
 However, score recovery is a stricter test than sample quality.
-On this stricter test, the CNF also outperforms the diffusion model in directional alignment and linear agreement across all three systems.
+On this stricter test, the CNF also outperforms the denoising diffusion model in directional alignment and linear agreement across all three systems.
 We recover scores that align well with the analytic target for the harmonic base system, but agreement drops for both models when ring closure or nonlocal hairpin contacts shape the ensemble.
 This distinction matters for dynamics: a model can generate plausible conformations while producing gradients too noisy, incorrectly scaled, or locally misaligned to drive reliable trajectories.
-We do not interpret the diffusion gap as evidence that diffusion models cannot work in this setting.
-The reported diffusion checkpoints had stabilized training losses, but additional tuning of the diffusion schedule, score-evaluation time, or optimization settings could still change the quantitative comparison.
+We do not interpret the denoising diffusion gap as evidence that denoising diffusion models cannot work in this setting.
+The reported denoising diffusion checkpoints had stabilized training losses, but additional tuning of the diffusion schedule, score-evaluation time, or optimization settings could still change the quantitative comparison.
 
 Our main limitation is that we study controlled two-dimensional polymer benchmarks, not atomistic proteins.
 An atomistic molecular-dynamics dataset would be a natural next step, but we chose Brownian Rouse systems first because they are faster to generate, easier to iterate on in Julia, and have analytic score targets.
@@ -2156,8 +2154,8 @@ The training objective weights the squared error by $\sigma^2(t)$:
         \right].
     \end{aligned}
 \end{equation}
-No additional factor of $\sigma(t)$ is applied when we report diffusion score diagnostics: the model output is trained in score units through the $-\epsilon/\sigma(t)$ target.
-For Table~\ref{tab:score-agreement}, we evaluate the diffusion model on clean centered configurations at $t_{\mathrm{eval}}=10^{-4}$, giving $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$.
+No additional factor of $\sigma(t)$ is applied when we report denoising diffusion score diagnostics: the model output is trained in score units through the $-\epsilon/\sigma(t)$ target.
+For Table~\ref{tab:score-agreement}, we evaluate the denoising diffusion model on clean centered configurations at $t_{\mathrm{eval}}=10^{-4}$, giving $s_\theta(x,t_{\mathrm{eval}})\approx\nabla_x\log p_{t_{\mathrm{eval}}}(x)$.
 For the VP schedule in the experiments, $\sigma(t_{\mathrm{eval}})\approx 3.2\times10^{-3}$.
 The comparison with the Brownian target $F(x)/D=\nabla_x\log p_0(x)$ therefore uses the small-time approximation $p_{t_{\mathrm{eval}}}\approx p_0$.
 We do not evaluate at exactly $t=0$ because the conditional target above is singular as $\sigma(t)\to0$.
